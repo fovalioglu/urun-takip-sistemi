@@ -35,7 +35,9 @@ COL_CIZILDI = "Çizildi"
 COL_AUDIT = "Son değişiklik"
 COL_TERMSTAT = "Termin Durumu"
 KULLANICI_TABLO = "admin"
-TABLO_USERS: dict[str, str] = {
+USER_FILE = "users.csv"
+# İlk kurulumda boş users.csv için örnek hesaplar (dosyaya yazılır).
+DEFAULT_SEED_USERS: dict[str, str] = {
     "admin": "1234",
     "ayse": "1234",
     "hamza": "1234",
@@ -346,6 +348,72 @@ def get_csv_path() -> Path:
 
 def get_log_path() -> Path:
     return Path(__file__).resolve().parent / "log.csv"
+
+
+def get_users_csv_path() -> Path:
+    return Path(__file__).resolve().parent / USER_FILE
+
+
+def _must_change_as_bool(val: object) -> bool:
+    if val is True or val is False:
+        return bool(val)
+    if val is None or val is pd.NA:
+        return False
+    if isinstance(val, float) and pd.isna(val):
+        return False
+    return str(val).strip().lower() in ("true", "1", "yes")
+
+
+def load_users() -> pd.DataFrame:
+    p = get_users_csv_path()
+    if not p.exists():
+        df = pd.DataFrame(columns=["username", "password", "must_change"])
+        df.to_csv(p, index=False, encoding="utf-8-sig")
+    users = pd.read_csv(p, encoding="utf-8-sig")
+    for c in ("username", "password", "must_change"):
+        if c not in users.columns:
+            users[c] = pd.NA if c != "must_change" else False
+    if users.empty:
+        rows = [
+            {
+                "username": u.lower(),
+                "password": pw,
+                "must_change": False,
+            }
+            for u, pw in DEFAULT_SEED_USERS.items()
+        ]
+        users = pd.DataFrame(rows)
+        save_users(users)
+    users["must_change"] = users["must_change"].map(_must_change_as_bool)
+    return users
+
+
+def save_users(df: pd.DataFrame) -> None:
+    out = df.copy()
+    out.to_csv(get_users_csv_path(), index=False, encoding="utf-8-sig")
+
+
+def authenticate(username: str, password: str) -> tuple[bool, bool]:
+    users = load_users()
+    un = str(username).strip().lower()
+    user = users[
+        (users["username"].astype(str).str.strip().str.lower() == un)
+        & (users["password"].astype(str) == str(password))
+    ]
+    if not user.empty:
+        return True, _must_change_as_bool(user.iloc[0]["must_change"])
+    return False, False
+
+
+def change_password(username: str, new_password: str) -> None:
+    users = load_users()
+    un = str(username).strip().lower()
+    mask = users["username"].astype(str).str.strip().str.lower() == un
+    if not mask.any():
+        return
+    users.loc[mask, "password"] = str(new_password)
+    users.loc[mask, "must_change"] = False
+    save_users(users)
 
 
 def read_log_df() -> pd.DataFrame:
@@ -1349,13 +1417,60 @@ def render_login_screen() -> None:
     if submitted:
         u = str(st.session_state.get("login_username", "")).strip()
         p = str(st.session_state.get("login_password", ""))
-        if TABLO_USERS.get(u) == p:
-            st.session_state["user"] = u
+        ok, must_ch = authenticate(u, p)
+        if ok:
+            st.session_state["user"] = u.strip().lower()
+            st.session_state["must_change_password"] = bool(must_ch)
             st.rerun()
         else:
             ec1, ec2, ec3 = st.columns([1, 2, 1])
             with ec2:
                 st.error("kullanıcı adı veya şifre yanlış")
+
+
+def render_force_password_change() -> None:
+    st.markdown(
+        """
+        <style>
+        section.main [data-testid="stForm"] {
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
+            padding: 2rem 1.75rem 1.75rem 1.75rem;
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    st.markdown("<br><br><br>", unsafe_allow_html=True)
+    c1, c2, c3 = st.columns([1, 2, 1])
+    with c2:
+        st.markdown(
+            "<p style='text-align:center;color:#64748b;margin-bottom:1rem;'>"
+            "Güvenlik için yeni bir şifre belirlemeniz gerekiyor.</p>",
+            unsafe_allow_html=True,
+        )
+        with st.form("force_password_change_form"):
+            st.text_input("Yeni şifre", type="password", key="force_pw_new")
+            st.text_input("Yeni şifre (tekrar)", type="password", key="force_pw_new2")
+            sub = st.form_submit_button("Şifreyi kaydet", use_container_width=True)
+    if sub:
+        n1 = str(st.session_state.get("force_pw_new", ""))
+        n2 = str(st.session_state.get("force_pw_new2", ""))
+        ec1, ec2, ec3 = st.columns([1, 2, 1])
+        with ec2:
+            if len(n1) < 4:
+                st.error("Şifre en az 4 karakter olmalı.")
+            elif n1 != n2:
+                st.error("Şifreler eşleşmiyor.")
+            else:
+                change_password(str(st.session_state.get("user", "")), n1)
+                st.session_state["must_change_password"] = False
+                st.rerun()
 
 
 st.set_page_config(page_title="Ürün Takip Sistemi", layout="wide")
@@ -1364,6 +1479,10 @@ _inject_layout_css()
 
 if not st.session_state.get("user"):
     render_login_screen()
+    st.stop()
+
+if st.session_state.get("must_change_password"):
+    render_force_password_change()
     st.stop()
 
 try:
@@ -1405,6 +1524,7 @@ with action_col:
     with _lo:
         if st.button("Çıkış", key="btn_logout"):
             st.session_state.pop("user", None)
+            st.session_state.pop("must_change_password", None)
             st.rerun()
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"

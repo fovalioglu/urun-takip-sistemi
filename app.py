@@ -1565,18 +1565,10 @@ def render_login_screen() -> None:
     )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
-        st.image("logo.png", width=180)
         with st.form("login_form"):
-            st.markdown(
-                "<h2 style='text-align:center;margin:0 0 0.35rem 0;font-size:1.85rem;"
-                "font-weight:700;letter-spacing:0.14em;color:#0f172a;'>LAPERISSA</h2>",
-                unsafe_allow_html=True,
-            )
-            st.markdown(
-                "<p style='text-align:center;margin:0 0 1.75rem 0;font-size:1.05rem;"
-                "color:#64748b;'>Ürün & Sipariş Takip</p>",
-                unsafe_allow_html=True,
-            )
+            _hl, _hm, _hr = st.columns([1, 1.4, 1])
+            with _hm:
+                st.image("logo.png", width=220)
             st.text_input("Kullanıcı adı", key="login_username")
             st.text_input("Şifre", type="password", key="login_password")
             submitted = st.form_submit_button("Giriş", use_container_width=True)

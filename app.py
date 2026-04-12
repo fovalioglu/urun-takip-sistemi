@@ -18,9 +18,71 @@ from streamlit.column_config import (
     SelectboxColumn,
     TextColumn,
 )
+from supabase import create_client
+
+SUPABASE_URL = "https://xpllqdbwtiyhycskvyfr.supabase.co"
+SUPABASE_KEY = "sb_publishable_C0xXpkSgwmu312wyI-VPrg_-jTFimQ0"
+
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+
+def update_online_status(username: str) -> None:
+    try:
+        supabase.table("online_users").upsert(
+            {
+                "username": username,
+                "last_seen": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            }
+        ).execute()
+    except Exception:
+        pass
+
+
+def get_online_users() -> list[str]:
+    try:
+        threshold = datetime.datetime.now(datetime.timezone.utc) - datetime.timedelta(
+            seconds=90
+        )
+        response = (
+            supabase.table("online_users")
+            .select("username,last_seen")
+            .gte("last_seen", threshold.isoformat())
+            .execute()
+        )
+        rows = response.data or []
+        return [str(u["username"]) for u in rows]
+    except Exception:
+        return []
+
+
+def render_online_users() -> None:
+    if "user" not in st.session_state:
+        return
+    update_online_status(str(st.session_state["user"]))
+    online_users = get_online_users()
+    online_count = len(online_users)
+    if hasattr(st, "popover"):
+        with st.popover(f"🟢 {online_count} online"):
+            if online_users:
+                for u in online_users:
+                    st.write("🟢", u)
+            else:
+                st.caption("kimse online değil")
+    else:
+        with st.expander(f"🟢 {online_count} online", expanded=False):
+            if online_users:
+                for u in online_users:
+                    st.write("🟢", u)
+            else:
+                st.caption("kimse online değil")
+
 
 COL_DAB = "D-A=T"
-COL_URUN = "Ürün Kodu"
+COL_SB_ID = "id"
+COL_CREATED = "Oluşturulma"
+COL_URUN = "Ürün Kodu"  # Supabase: stok_kodu
+COL_URUN_ADI = "Ürün Adı"  # urun_adi
+COL_BEDEN = "Beden"
 COL_ATOLYE = "Atölye"
 COL_PLM = "PLM"
 COL_RENK = "Renk"
@@ -28,14 +90,27 @@ COL_KESIM = "Kesim Adedi"
 COL_FASON = "Fason Durum"
 COL_DSM = "DSM Termin"
 COL_ATOLYE_TERM = "Atölye Termin"
-COL_NOTLAR = "Açıklama"
-COL_FIT_ONAY = "Fit Onayı"
-COL_KESIM_TXT = "Kesim"
-COL_CIZILDI = "Çizildi"
 COL_AUDIT = "Son değişiklik"
-COL_TERMSTAT = "Termin Durumu"
+
+SB_TABLE_URUNLER = "urunler"
+SB_TO_APP: dict[str, str] = {
+    "id": COL_SB_ID,
+    "created_at": COL_CREATED,
+    "urun_adi": COL_URUN_ADI,
+    "stok_kodu": COL_URUN,
+    "beden": COL_BEDEN,
+    "renk": COL_RENK,
+    "atolye": COL_ATOLYE,
+    "plm": COL_PLM,
+    "kesim_adedi": COL_KESIM,
+    "fason_durum": COL_FASON,
+    "dsm_termin": COL_DSM,
+    "atolye_termin": COL_ATOLYE_TERM,
+}
+APP_TO_SB: dict[str, str] = {app: sb for sb, app in SB_TO_APP.items()}
 KULLANICI_TABLO = "admin"
 USER_FILE = "users.csv"
+VERILER_CSV = "veriler.csv"
 # İlk kurulumda boş users.csv için örnek hesaplar (dosyaya yazılır).
 DEFAULT_SEED_USERS: dict[str, str] = {
     "admin": "1234",
@@ -52,6 +127,8 @@ LOG_COLS = [
     "yeni_deger",
 ]
 TABLE_EDIT_COLS: tuple[str, ...] = (
+    COL_URUN_ADI,
+    COL_BEDEN,
     COL_PLM,
     COL_RENK,
     COL_ATOLYE,
@@ -89,8 +166,6 @@ FILTER_FASON_OPTS: tuple[str, ...] = (
     "Final",
     "Hazırlanıyor",
 )
-FILTER_FIT_OPTS: tuple[str, ...] = ("Hepsi", "Onaylandı", "Bekliyor")
-
 TRENDYOL_COL_ALIASES: dict[str, tuple[str, ...]] = {
     "urun_kodu": ("ürün kodu", "urun kodu"),
     "plm": ("plm id",),
@@ -99,9 +174,6 @@ TRENDYOL_COL_ALIASES: dict[str, tuple[str, ...]] = {
     "kesim_adedi": ("toplam po adedi", "toplam poadedi"),
     "fit_durumu": ("fit durumu", "fıt durumu"),
 }
-
-TRENDYOL_ENSURE_COLS: tuple[str, ...] = (COL_FIT_ONAY, COL_KESIM_TXT, COL_CIZILDI)
-
 
 def _trendyol_header_key(name: object) -> str:
     s = str(name).strip().replace("\ufeff", "")
@@ -166,14 +238,6 @@ def resolve_trendyol_columns(df: pd.DataFrame) -> dict[str, str | None]:
     return found
 
 
-def ensure_trendyol_columns(df: pd.DataFrame) -> pd.DataFrame:
-    out = df.copy()
-    for c in TRENDYOL_ENSURE_COLS:
-        if c not in out.columns:
-            out[c] = pd.NA
-    return out
-
-
 def parse_trendyol_paste_text(text: str) -> pd.DataFrame:
     raw = text.strip()
     if not raw:
@@ -211,7 +275,7 @@ def merge_trendyol_into_base(
     cmap = resolve_trendyol_columns(paste_df)
     if not cmap.get("urun_kodu"):
         raise ValueError("Yapıştırılan tabloda 'ÜRÜN KODU' / Ürün Kodu sütunu bulunamadı.")
-    out = ensure_trendyol_columns(base.copy().reset_index(drop=True))
+    out = base.copy().reset_index(drop=True)
     paste_df = paste_df.dropna(how="all").copy()
     ucol = cmap["urun_kodu"]
     paste_df["_code_key"] = paste_df[ucol].map(
@@ -242,8 +306,6 @@ def merge_trendyol_into_base(
         dsm_ts: pd.Timestamp | None = None
         if cmap["dsm_termin"]:
             dsm_ts = _import_dsm_ts(row.get(cmap["dsm_termin"]))
-        fit_val = _import_cell_str(row, cmap.get("fit_durumu"))
-
         if idxs:
             for ix in idxs:
                 if plm:
@@ -261,11 +323,13 @@ def merge_trendyol_into_base(
                                 out.at[ix, COL_KESIM] = int(kn)
                 if dsm_ts is not None:
                     out.at[ix, COL_DSM] = dsm_ts
-                if fit_val:
-                    out.at[ix, COL_FIT_ONAY] = fit_val
                 n_updated_rows += 1
         else:
             new_row: dict[str, object] = {c: pd.NA for c in out.columns}
+            new_row[COL_SB_ID] = pd.NA
+            new_row[COL_CREATED] = pd.NaT
+            new_row[COL_URUN_ADI] = pd.NA
+            new_row[COL_BEDEN] = pd.NA
             new_row[COL_URUN] = code
             new_row[COL_PLM] = plm or pd.NA
             new_row[COL_RENK] = renk or pd.NA
@@ -274,10 +338,6 @@ def merge_trendyol_into_base(
             new_row[COL_ATOLYE_TERM] = pd.NaT
             new_row[COL_FASON] = "Planlanacak"
             new_row[COL_DSM] = dsm_ts if dsm_ts is not None else pd.NaT
-            new_row[COL_NOTLAR] = pd.NA
-            new_row[COL_FIT_ONAY] = fit_val if fit_val else ""
-            new_row[COL_KESIM_TXT] = ""
-            new_row[COL_CIZILDI] = ""
             out = pd.concat(
                 [out, pd.DataFrame([new_row], columns=out.columns)],
                 ignore_index=True,
@@ -317,7 +377,8 @@ def render_trendyol_import_ui(df: pd.DataFrame) -> None:
             merged, n_new, n_upd = merge_trendyol_into_base(base, pasted)
             merged = normalize_loaded_df(merged)
             merged = apply_d_ab_t(merged)
-            merged.to_csv(get_csv_path(), index=False, encoding="utf-8-sig")
+            sync_supabase_urunler(base, merged)
+            save_veriler_csv_snapshot(merged)
             load_data.clear()
             mark_data_file_saved()
             st.session_state["_trendyol_clear_paste_next"] = True
@@ -329,25 +390,36 @@ def render_trendyol_import_ui(df: pd.DataFrame) -> None:
             st.error(f"Okunamadı: {e}")
 
 
-def get_excel_path() -> Path:
-    base = Path(__file__).resolve().parent
-    preferred = base / "31.03.2026 Ürün Takip Sistemi.xlsx"
-    if preferred.exists():
-        return preferred
-    xlsx_files = sorted(base.glob("*.xlsx"))
-    if not xlsx_files:
-        raise FileNotFoundError(
-            f"Excel dosyası bulunamadı. Beklenen konum: {preferred}"
-        )
-    return xlsx_files[0]
-
-
-def get_csv_path() -> Path:
-    return Path(__file__).resolve().parent / "veriler.csv"
-
-
 def get_log_path() -> Path:
     return Path(__file__).resolve().parent / "log.csv"
+
+
+def get_veriler_csv_path() -> Path:
+    return Path(__file__).resolve().parent / VERILER_CSV
+
+
+def read_veriler_dataframe() -> pd.DataFrame:
+    p = get_veriler_csv_path()
+    if not p.exists():
+        return pd.DataFrame(columns=list(SB_TO_APP.values()))
+    raw = pd.read_csv(p, encoding="utf-8-sig")
+    raw = drop_unnamed_columns(raw)
+    for _sb, app_col in SB_TO_APP.items():
+        if app_col not in raw.columns:
+            raw[app_col] = pd.NA
+    if COL_SB_ID in raw.columns:
+        raw[COL_SB_ID] = pd.to_numeric(raw[COL_SB_ID], errors="coerce").astype("Int64")
+    return raw
+
+
+def save_veriler_csv_snapshot(df: pd.DataFrame) -> None:
+    out = df.drop(
+        columns=[c for c in (COL_AUDIT,) if c in df.columns],
+        errors="ignore",
+    ).copy()
+    p = get_veriler_csv_path()
+    p.parent.mkdir(parents=True, exist_ok=True)
+    out.to_csv(p, index=False, encoding="utf-8-sig")
 
 
 def get_users_csv_path() -> Path:
@@ -441,6 +513,75 @@ def append_log_entries(entries: list[dict[str, str]]) -> None:
         new_rows = pd.concat([old, new_rows], ignore_index=True)
     p.parent.mkdir(parents=True, exist_ok=True)
     new_rows.to_csv(p, index=False, encoding="utf-8-sig")
+
+
+def _scalar_for_supabase(app_col: str, val: object) -> object | None:
+    if app_col in (COL_DSM, COL_ATOLYE_TERM, COL_CREATED):
+        ts = pd.to_datetime(val, errors="coerce")
+        if pd.isna(ts):
+            return None
+        return ts.strftime("%Y-%m-%d")
+    if app_col == COL_KESIM:
+        n = pd.to_numeric(val, errors="coerce")
+        return int(n) if pd.notna(n) else 0
+    if val is None or val is pd.NA:
+        return None
+    if isinstance(val, float) and pd.isna(val):
+        return None
+    s = str(val).strip()
+    return s if s else None
+
+
+def row_to_supabase_payload(row: pd.Series) -> dict[str, object]:
+    payload: dict[str, object] = {}
+    for app_c, sb_c in APP_TO_SB.items():
+        if app_c == COL_SB_ID:
+            continue
+        if app_c == COL_CREATED:
+            continue
+        if app_c not in row.index:
+            continue
+        payload[sb_c] = _scalar_for_supabase(app_c, row[app_c])
+    return payload
+
+
+def _payload_skip_none(d: dict[str, object]) -> dict[str, object]:
+    return {k: v for k, v in d.items() if v is not None}
+
+
+def insert_row(row_dict: dict[str, object]) -> None:
+    supabase.table(SB_TABLE_URUNLER).insert(row_dict).execute()
+
+
+def sync_supabase_urunler(before: pd.DataFrame, after: pd.DataFrame) -> None:
+    """Kayıt öncesi (before) ve sonrası (after) tam tablo; insert/update/delete."""
+    b = before.drop(columns=[COL_DAB], errors="ignore").copy()
+    a = after.drop(columns=[COL_DAB], errors="ignore").copy()
+    for frame in (b, a):
+        if COL_SB_ID in frame.columns:
+            frame[COL_SB_ID] = pd.to_numeric(
+                frame[COL_SB_ID], errors="coerce"
+            ).astype("Int64")
+    b_ids = {
+        int(x)
+        for x in b[COL_SB_ID].dropna().tolist()
+        if pd.notna(x) and str(x).strip() != ""
+    }
+    a_ids = {
+        int(x)
+        for x in a[COL_SB_ID].dropna().tolist()
+        if pd.notna(x) and str(x).strip() != ""
+    }
+    for del_id in b_ids - a_ids:
+        supabase.table(SB_TABLE_URUNLER).delete().eq("id", del_id).execute()
+    for _, row in a.iterrows():
+        rid = row.get(COL_SB_ID)
+        raw = row_to_supabase_payload(row)
+        if rid is None or pd.isna(rid) or str(rid).strip() == "":
+            supabase.table(SB_TABLE_URUNLER).insert(_payload_skip_none(raw)).execute()
+        else:
+            uid = int(pd.to_numeric(rid, errors="coerce"))
+            supabase.table(SB_TABLE_URUNLER).update(raw).eq("id", uid).execute()
 
 
 def _str_norm(val: object) -> str:
@@ -621,12 +762,30 @@ def build_table_column_config(columns: list[str]) -> dict[str, object]:
                 help="Gün farkı ve renk göstergesi (gecikme / kritik / yaklaşıyor / normal). Kayıtta terminlerden yeniden hesaplanır.",
                 width="small",
             )
+        elif c == COL_SB_ID:
+            cfg[c] = NumberColumn(
+                COL_SB_ID,
+                help="Supabase kayıt numarası (salt okunur).",
+                disabled=True,
+                format="%d",
+            )
+        elif c == COL_CREATED:
+            cfg[c] = DatetimeColumn(
+                COL_CREATED,
+                help="Kaydın oluşturulma zamanı (salt okunur).",
+                disabled=True,
+                format="DD.MM.YYYY HH:mm",
+            )
         elif c == COL_URUN:
             cfg[c] = TextColumn(
                 COL_URUN,
                 help="Yeni satır eklerken ürün kodunu buraya yazın.",
                 disabled=False,
             )
+        elif c == COL_URUN_ADI:
+            cfg[c] = TextColumn(COL_URUN_ADI, help=tip, disabled=False)
+        elif c == COL_BEDEN:
+            cfg[c] = TextColumn(COL_BEDEN, help=tip, disabled=False)
         elif c == COL_PLM:
             cfg[c] = TextColumn(COL_PLM, help=tip, disabled=False)
         elif c == COL_RENK:
@@ -708,7 +867,7 @@ def apply_table_save(
     """Tam veri kümesini günceller; her hücre değişiminde kullanıcı, tarih-saat, eski/yeni değer log.csv’ye yazılır."""
     log_entries: list[dict[str, str]] = []
     edit_df = edited.drop(
-        columns=[c for c in (COL_AUDIT, COL_TERMSTAT) if c in edited.columns],
+        columns=[c for c in (COL_AUDIT,) if c in edited.columns],
         errors="ignore",
     ).copy()
     if COL_URUN not in edit_df.columns:
@@ -852,13 +1011,10 @@ def register_atolye(name: str, df: pd.DataFrame) -> str:
 
 
 def ensure_last_save_bootstrap() -> None:
-    if "_last_save_at" in st.session_state:
-        return
-    p = get_csv_path()
-    if p.exists():
-        st.session_state["_last_save_at"] = datetime.datetime.fromtimestamp(
-            p.stat().st_mtime
-        ).replace(microsecond=0)
+    if "_last_save_at" not in st.session_state:
+        st.session_state["_last_save_at"] = datetime.datetime.now().replace(
+            microsecond=0
+        )
 
 
 def mark_data_file_saved() -> None:
@@ -868,7 +1024,7 @@ def mark_data_file_saved() -> None:
 def _strip_editor_display_cols(df: object) -> object:
     if not hasattr(df, "columns"):
         return df
-    extra = [c for c in (COL_AUDIT, COL_TERMSTAT) if c in df.columns]
+    extra = [c for c in (COL_AUDIT,) if c in df.columns]
     return df.drop(columns=extra, errors="ignore")
 
 
@@ -945,7 +1101,7 @@ def persist_table_edits(edited_df: object, *, toast_message: str | None) -> bool
             editor_row_urun_keys=row_keys,
         )
         ec = edited_df.drop(
-            columns=[c for c in (COL_AUDIT, COL_TERMSTAT) if c in edited_df.columns],
+            columns=[c for c in (COL_AUDIT,) if c in edited_df.columns],
             errors="ignore",
         )
         for _, er in ec.iterrows():
@@ -953,7 +1109,8 @@ def persist_table_edits(edited_df: object, *, toast_message: str | None) -> bool
             if av:
                 register_atolye(av, out_df)
         append_log_entries(log_rows)
-        out_df.to_csv(get_csv_path(), index=False, encoding="utf-8-sig")
+        sync_supabase_urunler(full_before, out_df)
+        save_veriler_csv_snapshot(out_df)
         load_data.clear()
         mark_data_file_saved()
         st.session_state.pop("_autosave_err", None)
@@ -964,13 +1121,6 @@ def persist_table_edits(edited_df: object, *, toast_message: str | None) -> bool
     except ValueError as err:
         st.session_state["_autosave_err"] = str(err)
         return False
-
-
-def read_raw_source() -> pd.DataFrame:
-    csv_path = get_csv_path()
-    if csv_path.exists():
-        return pd.read_csv(csv_path, encoding="utf-8-sig")
-    return pd.read_excel(get_excel_path())
 
 
 def apply_d_ab_t(df: pd.DataFrame) -> pd.DataFrame:
@@ -997,16 +1147,19 @@ def apply_d_ab_t(df: pd.DataFrame) -> pd.DataFrame:
 def normalize_loaded_df(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
     df = df.convert_dtypes()
+    for tc in (COL_DSM, COL_ATOLYE_TERM, COL_CREATED):
+        if tc in df.columns:
+            df[tc] = pd.to_datetime(df[tc], errors="coerce")
     for col in df.columns:
         c = str(col)
-        if "Termin" in c or "Tarih" in c:
+        if "Termin" in c or "Tarih" in c or c == COL_CREATED:
             df[col] = pd.to_datetime(df[col], errors="coerce")
     return df
 
 
 @st.cache_data(show_spinner="Veri yükleniyor…")
 def load_data() -> pd.DataFrame:
-    raw = read_raw_source()
+    raw = read_veriler_dataframe()
     df = normalize_loaded_df(raw)
     return apply_d_ab_t(df)
 
@@ -1099,30 +1252,10 @@ def mask_fason_filter(df: pd.DataFrame, choice: str) -> pd.Series:
     return df[COL_FASON].map(_fason_cell_matches)
 
 
-def _fit_is_onaylandi(val: object) -> bool:
-    if val is None or val is pd.NA:
-        return False
-    if isinstance(val, float) and pd.isna(val):
-        return False
-    s = str(val).strip()
-    if not s:
-        return False
-    low = s.casefold()
-    return "onaylandı" in low or "onaylandi" in low.replace("ı", "i")
-
-
-def mask_fit_onay_filter(df: pd.DataFrame, choice: str) -> pd.Series:
-    if choice == "Hepsi" or COL_FIT_ONAY not in df.columns:
-        return pd.Series(True, index=df.index)
-    if choice == "Onaylandı":
-        return df[COL_FIT_ONAY].map(_fit_is_onaylandi)
-    if choice == "Bekliyor":
-        return ~df[COL_FIT_ONAY].map(_fit_is_onaylandi)
-    return pd.Series(True, index=df.index)
-
-
 GLOBAL_SEARCH_COLS: tuple[str, ...] = (
     COL_URUN,
+    COL_URUN_ADI,
+    COL_BEDEN,
     COL_PLM,
     COL_RENK,
     COL_ATOLYE,
@@ -1190,7 +1323,8 @@ def sync_form_new_defaults(df: pd.DataFrame, code: str) -> None:
     st.session_state["form_i_plm"] = ""
     st.session_state["form_i_renk"] = ""
     st.session_state["form_i_kesim"] = 0
-    st.session_state["form_i_not"] = ""
+    st.session_state["form_i_urun_adi"] = ""
+    st.session_state["form_i_beden"] = ""
     st.session_state["form_i_fason"] = FASON_OPTIONS[0]
     st.session_state["form_i_atolye"] = ats[0] if ats else ""
     st.session_state["form_dsm"] = today
@@ -1208,7 +1342,8 @@ def sync_form_load_existing(df: pd.DataFrame, pick: str) -> None:
     st.session_state["form_i_renk"] = _cell_str(r.get(COL_RENK))
     kn = pd.to_numeric(r.get(COL_KESIM), errors="coerce")
     st.session_state["form_i_kesim"] = int(kn) if pd.notna(kn) else 0
-    st.session_state["form_i_not"] = _cell_str(r.get(COL_NOTLAR))
+    st.session_state["form_i_urun_adi"] = _cell_str(r.get(COL_URUN_ADI))
+    st.session_state["form_i_beden"] = _cell_str(r.get(COL_BEDEN))
     fv = _cell_str(r.get(COL_FASON))
     st.session_state["form_i_fason"] = fv if fv in FASON_OPTIONS else FASON_OPTIONS[0]
     av = _cell_str(r.get(COL_ATOLYE))
@@ -1258,9 +1393,26 @@ def on_atolye_quick_pick() -> None:
     st.session_state["atolye_quick"] = "—"
 
 
-def build_row_dict(df: pd.DataFrame, form: dict[str, object]) -> dict[str, object]:
+def build_row_dict(
+    df: pd.DataFrame,
+    form: dict[str, object],
+    *,
+    existing: pd.Series | None = None,
+) -> dict[str, object]:
     row: dict[str, object] = {c: pd.NA for c in df.columns}
+    if existing is not None and COL_SB_ID in existing.index:
+        row[COL_SB_ID] = existing.get(COL_SB_ID)
+    else:
+        row[COL_SB_ID] = pd.NA
+    if existing is not None and COL_CREATED in existing.index:
+        row[COL_CREATED] = existing.get(COL_CREATED)
+    else:
+        row[COL_CREATED] = pd.NaT
     row[COL_URUN] = str(form["urun_kodu"]).strip()
+    ua = str(form.get("urun_adi", "")).strip()
+    row[COL_URUN_ADI] = ua or pd.NA
+    bd = str(form.get("beden", "")).strip()
+    row[COL_BEDEN] = bd or pd.NA
     row[COL_PLM] = str(form["plm"]).strip() or pd.NA
     row[COL_RENK] = str(form["renk"]).strip() or pd.NA
     row[COL_ATOLYE] = str(form["atolye"]).strip() or pd.NA
@@ -1268,8 +1420,6 @@ def build_row_dict(df: pd.DataFrame, form: dict[str, object]) -> dict[str, objec
     row[COL_FASON] = str(form["fason_durum"])
     row[COL_DSM] = pd.Timestamp(form["dsm_termin"])
     row[COL_ATOLYE_TERM] = pd.Timestamp(form["atolye_termin"])
-    n = str(form["notlar"]).strip()
-    row[COL_NOTLAR] = n or pd.NA
     return row
 
 
@@ -1305,13 +1455,14 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
         label_visibility="collapsed",
     )
     with st.form("urun_kayit_form"):
+        st.text_input("Ürün adı", key="form_i_urun_adi")
+        st.text_input("Beden", key="form_i_beden")
         st.text_input("PLM", key="form_i_plm")
         st.text_input("Renk", key="form_i_renk")
         st.number_input("Kesim Adedi", min_value=0, step=1, key="form_i_kesim")
         st.selectbox("Fason Durum", FASON_OPTIONS, key="form_i_fason")
         st.date_input("DSM Termin", key="form_dsm")
         st.date_input("Atölye Termin", key="form_atolye_term")
-        st.text_area("Notlar", key="form_i_not", height=88)
         submitted = st.form_submit_button("Kaydet")
     if submitted:
         urun_kodu_val = str(st.session_state.get("form_i_urun", "")).strip()
@@ -1320,6 +1471,8 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
         else:
             form_vals = {
                 "urun_kodu": urun_kodu_val,
+                "urun_adi": st.session_state.get("form_i_urun_adi", ""),
+                "beden": st.session_state.get("form_i_beden", ""),
                 "plm": st.session_state.get("form_i_plm", ""),
                 "renk": st.session_state.get("form_i_renk", ""),
                 "atolye": st.session_state.get("form_i_atolye", ""),
@@ -1327,7 +1480,6 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
                 "fason_durum": st.session_state.get("form_i_fason", FASON_OPTIONS[0]),
                 "dsm_termin": st.session_state.get("form_dsm"),
                 "atolye_termin": st.session_state.get("form_atolye_term"),
-                "notlar": st.session_state.get("form_i_not", ""),
             }
             base = load_data().copy()
             canon_at = register_atolye(str(form_vals.get("atolye", "")), base)
@@ -1340,14 +1492,21 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
                     "Bu ürün kodu için birden fazla satır var; önce veriyi düzeltin."
                 )
             else:
+                full_before = base.copy()
+                existing_row = (
+                    base.loc[dup_mask].iloc[0] if bool(dup_mask.any()) else None
+                )
                 base = base[~dup_mask]
                 rf = st.session_state.get("_rename_from")
                 if rf and str(rf).strip() and str(rf).strip() != code:
                     base = base[base[COL_URUN].astype(str) != str(rf).strip()]
-                new_row = build_row_dict(base, form_vals)
+                new_row = build_row_dict(base, form_vals, existing=existing_row)
                 new_df = pd.DataFrame([new_row], columns=base.columns)
                 out_df = pd.concat([base, new_df], ignore_index=True)
-                out_df.to_csv(get_csv_path(), index=False, encoding="utf-8-sig")
+                out_df = normalize_loaded_df(out_df)
+                out_df = apply_d_ab_t(out_df)
+                sync_supabase_urunler(full_before, out_df)
+                save_veriler_csv_snapshot(out_df)
                 load_data.clear()
                 mark_data_file_saved()
                 st.session_state["_rename_from"] = None
@@ -1514,15 +1673,17 @@ with title_col:
     )
 with action_col:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _ur, _lo = st.columns([1.1, 0.9], gap="small")
+    _ur, _on, _lo = st.columns([1.35, 1.05, 0.72], gap="small")
     with _ur:
         st.markdown(
             f'<div style="text-align:right;font-size:0.9rem;color:#0f172a;'
-            f'margin:0 0 0.35rem 0;">👤 {_u}</div>',
+            f'margin:0 0 0.35rem 0;line-height:2rem;">{_u}</div>',
             unsafe_allow_html=True,
         )
+    with _on:
+        render_online_users()
     with _lo:
-        if st.button("Çıkış", key="btn_logout"):
+        if st.button("Çıkış", key="btn_logout", use_container_width=True):
             st.session_state.pop("user", None)
             st.session_state.pop("must_change_password", None)
             st.rerun()
@@ -1563,7 +1724,7 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-flt_a, flt_u, flt_t, flt_f, flt_fit = st.columns(5, gap="small")
+flt_a, flt_u, flt_t, flt_f = st.columns(4, gap="small")
 with flt_a:
     atolye_filter = st.selectbox(
         "Atölye",
@@ -1588,12 +1749,6 @@ with flt_f:
         FILTER_FASON_OPTS,
         key="f_fason",
     )
-with flt_fit:
-    fit_filter = st.selectbox(
-        "Fit Onayı",
-        FILTER_FIT_OPTS,
-        key="f_fit",
-    )
 
 filtered_df = df.copy()
 if atolye_filter != "Tümü":
@@ -1610,15 +1765,13 @@ if termin_filter != "Hepsi":
     ]
 if fason_filter != "Hepsi":
     filtered_df = filtered_df.loc[mask_fason_filter(filtered_df, fason_filter)]
-if fit_filter != "Hepsi":
-    filtered_df = filtered_df.loc[mask_fit_onay_filter(filtered_df, fit_filter)]
 
 search_q = st.text_input(
     "Genel arama",
     key="f_global_search",
-    placeholder="Ürün Kodu, PLM, Renk, Atölye, Fason Durum…",
+    placeholder="Ürün kodu, adı, beden, PLM, renk, atölye, fason…",
     help=(
-        "Yazdığınız metin bu beş sütundan en az birinde geçen satırları gösterir "
+        "Yazdığınız metin bu sütunlardan en az birinde geçen satırları gösterir "
         "(büyük/küçük harf duyarsız, kısmi eşleşme). Her yeniden çalıştırmada uygulanır."
     ),
 )
@@ -1715,3 +1868,10 @@ if hasattr(st, "fragment"):
 if st.button("Değişiklikleri Kaydet", key="btn_tablo_kaydet"):
     if persist_table_edits(edited_df, toast_message="Tablo kaydedildi."):
         st.rerun()
+
+with st.expander("Ham veri (`load_data`)", expanded=False):
+    st.dataframe(
+        df,
+        use_container_width=True,
+        height=500,
+    )

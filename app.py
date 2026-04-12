@@ -24,10 +24,12 @@ background: linear-gradient(
 color:#1f2937;
 }
 
-/* sayfa genişlik */
+/* ANA İÇERİK GENİŞLİĞİ */
 .block-container{
-max-width:1450px;
-padding-top:30px;
+max-width: 100% !important;
+padding-left:56px !important;
+padding-right:56px !important;
+padding-top:25px;
 }
 
 /* LOGIN KART (Streamlit form) */
@@ -78,6 +80,29 @@ background:white;
 border-radius:12px;
 padding:10px;
 width:100% !important;
+max-width:100% !important;
+}
+
+/* tablo container */
+.stDataFrame{
+width:100% !important;
+}
+
+/* üst filtre satırı da genişlesin */
+[data-testid="column"]{
+padding-left:8px;
+padding-right:8px;
+}
+
+/* scroll alanını optimize et */
+section.main > div{
+max-width:100% !important;
+}
+
+/* gereksiz marginleri temizle */
+.css-18e3th9{
+padding-left:56px !important;
+padding-right:56px !important;
 }
 
 /* başlık alt yazı */

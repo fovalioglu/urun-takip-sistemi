@@ -916,6 +916,8 @@ def build_table_column_config(columns: list[str]) -> dict[str, object]:
                 COL_URUN,
                 help="Yeni satır eklerken ürün kodunu buraya yazın.",
                 disabled=False,
+                width="medium",
+                pinned=True,
             )
         elif c == COL_URUN_ADI:
             cfg[c] = TextColumn(COL_URUN_ADI, help=tip, disabled=False)

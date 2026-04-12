@@ -1,5 +1,31 @@
 from __future__ import annotations
 
+import streamlit as st
+
+st.set_page_config(
+    page_title="Laperissa Ürün Takip",
+    layout="wide",
+    initial_sidebar_state="collapsed",
+)
+
+st.markdown(
+    """
+<style>
+
+.block-container {
+    padding-top: 2rem;
+    padding-bottom: 1rem;
+}
+
+[data-testid="stAppViewContainer"] {
+    background-color: #0b1220;
+}
+
+</style>
+""",
+    unsafe_allow_html=True,
+)
+
 import os
 import datetime
 import hashlib
@@ -10,9 +36,6 @@ from pathlib import Path
 from urllib.parse import quote
 
 import pandas as pd
-import streamlit as st
-
-st.set_page_config(page_title="Ürün Takip Sistemi", layout="wide")
 
 from streamlit.column_config import (
     Column,

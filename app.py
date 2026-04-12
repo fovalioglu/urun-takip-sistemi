@@ -11,6 +11,9 @@ from urllib.parse import quote
 
 import pandas as pd
 import streamlit as st
+
+st.set_page_config(page_title="Ürün Takip Sistemi", layout="wide")
+
 from streamlit.column_config import (
     Column,
     DatetimeColumn,
@@ -1636,8 +1639,6 @@ def render_force_password_change() -> None:
                 st.rerun()
 
 
-st.set_page_config(page_title="Ürün Takip Sistemi", layout="wide")
-
 _inject_layout_css()
 
 if not st.session_state.get("user"):
@@ -1872,10 +1873,3 @@ if hasattr(st, "fragment"):
 if st.button("Değişiklikleri Kaydet", key="btn_tablo_kaydet"):
     if persist_table_edits(edited_df, toast_message="Tablo kaydedildi."):
         st.rerun()
-
-with st.expander("Ham veri (`load_data`)", expanded=False):
-    st.dataframe(
-        df,
-        use_container_width=True,
-        height=500,
-    )

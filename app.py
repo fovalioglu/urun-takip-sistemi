@@ -1701,12 +1701,34 @@ title_col, action_col = st.columns([4, 2], gap="small")
 with title_col:
     st.markdown(
         """
-        <h1 style="font-size:2rem;font-weight:600;letter-spacing:-0.03em;
-        margin:0 0 0.15rem 0;line-height:1.15;color:#0f172a;">
-        Ürün Takip Sistemi</h1>
-        <p style="margin:0;font-size:0.9rem;color:#64748b;">
-        Termin ve atölye takibi</p>
-        """,
+<div style="
+display:flex;
+align-items:center;
+gap:12px;
+margin-bottom:5px;
+">
+
+<img src="https://raw.githubusercontent.com/fovalioglu/urun-takip-sistemi/main/logo.png"
+style="
+height:42px;
+object-fit:contain;
+">
+
+</div>
+""",
+        unsafe_allow_html=True,
+    )
+    st.caption("Termin ve atölye takibi")
+    st.markdown(
+        """
+<style>
+
+h1{
+display:none;
+}
+
+</style>
+""",
         unsafe_allow_html=True,
     )
 with action_col:

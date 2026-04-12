@@ -3,7 +3,7 @@ from __future__ import annotations
 import streamlit as st
 
 st.set_page_config(
-    page_title="Laperissa Ürün Takip",
+    page_title="Laperissa",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -12,13 +12,71 @@ st.markdown(
     """
 <style>
 
-.block-container {
-    padding-top: 2rem;
-    padding-bottom: 1rem;
+/* SAYFA ARKA PLAN */
+[data-testid="stAppViewContainer"]{
+    background: linear-gradient(135deg,#0b1220,#0f1b33);
 }
 
-[data-testid="stAppViewContainer"] {
-    background-color: #0b1220;
+/* içerik genişlik */
+.block-container{
+    padding-top: 40px;
+    max-width: 1400px;
+}
+
+/* LOGIN KART (Streamlit form) */
+section.main [data-testid="stForm"]{
+    background:#f4f4f4;
+    padding:40px;
+    border-radius:18px;
+    width:420px;
+    max-width:100%;
+    margin-left:auto;
+    margin-right:auto;
+    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+}
+
+/* LOGO */
+.login-logo{
+    display:block;
+    margin:auto;
+    width:160px;
+    margin-bottom:20px;
+}
+
+/* INPUT LABEL RENK */
+label{
+    color:#1a1a1a !important;
+    font-weight:500;
+}
+
+/* INPUT */
+input{
+    background:#2c2f38 !important;
+    color:white !important;
+}
+
+/* placeholder */
+input::placeholder{
+    color:#bfc5d2;
+}
+
+/* buton */
+.stButton>button{
+    background:#0f172a;
+    color:white;
+    border-radius:8px;
+    height:45px;
+    font-weight:600;
+}
+
+/* tablo genişlik */
+[data-testid="stDataFrame"]{
+    width:100% !important;
+}
+
+/* scroll bar incelt */
+::-webkit-scrollbar{
+    height:8px;
 }
 
 </style>
@@ -1549,13 +1607,6 @@ def _inject_layout_css() -> None:
     st.markdown(
         """
         <style>
-            .main .block-container {
-                max-width: 1280px;
-                margin-left: auto;
-                margin-right: auto;
-                padding-top: 0.5rem;
-                padding-bottom: 0.75rem;
-            }
             [data-testid="stMetricContainer"] {
                 padding: 0.35rem 0.5rem;
                 background: #f8fafc;
@@ -1569,32 +1620,13 @@ def _inject_layout_css() -> None:
 
 
 def render_login_screen() -> None:
-    st.markdown(
-        """
-        <style>
-        section.main [data-testid="stForm"] {
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 2rem 1.75rem 1.75rem 1.75rem;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
             st.markdown(
-                "<div style='text-align:center'>",
+                '<img src="https://raw.githubusercontent.com/fovalioglu/urun-takip-sistemi/main/logo.png" class="login-logo">',
                 unsafe_allow_html=True,
             )
-            st.image("logo.png", width=140)
-            st.markdown("</div>", unsafe_allow_html=True)
             st.text_input("Kullanıcı adı", key="login_username")
             st.text_input("Şifre", type="password", key="login_password")
             submitted = st.form_submit_button("Giriş", use_container_width=True)
@@ -1613,23 +1645,6 @@ def render_login_screen() -> None:
 
 
 def render_force_password_change() -> None:
-    st.markdown(
-        """
-        <style>
-        section.main [data-testid="stForm"] {
-            max-width: 420px;
-            margin-left: auto;
-            margin-right: auto;
-            padding: 2rem 1.75rem 1.75rem 1.75rem;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            border-radius: 16px;
-            box-shadow: 0 8px 32px rgba(15, 23, 42, 0.08);
-        }
-        </style>
-        """,
-        unsafe_allow_html=True,
-    )
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:

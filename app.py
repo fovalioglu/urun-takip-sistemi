@@ -1566,6 +1566,14 @@ def render_login_screen() -> None:
     st.markdown("<br><br><br>", unsafe_allow_html=True)
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
+        st.markdown(
+            """
+            <div style='text-align:center'>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.image("logo.png", width=220)
         with st.form("login_form"):
             st.markdown(
                 "<h2 style='text-align:center;margin:0 0 0.35rem 0;font-size:1.85rem;"

@@ -1566,9 +1566,12 @@ def render_login_screen() -> None:
     col1, col2, col3 = st.columns([1, 2, 1])
     with col2:
         with st.form("login_form"):
-            _hl, _hm, _hr = st.columns([1, 1.4, 1])
-            with _hm:
-                st.image("logo.png", width=220)
+            st.markdown(
+                "<div style='text-align:center'>",
+                unsafe_allow_html=True,
+            )
+            st.image("logo.png", width=140)
+            st.markdown("</div>", unsafe_allow_html=True)
             st.text_input("Kullanıcı adı", key="login_username")
             st.text_input("Şifre", type="password", key="login_password")
             submitted = st.form_submit_button("Giriş", use_container_width=True)

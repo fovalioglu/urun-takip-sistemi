@@ -12,71 +12,93 @@ st.markdown(
     """
 <style>
 
-/* SAYFA ARKA PLAN */
+/* ANA ARKA PLAN */
 [data-testid="stAppViewContainer"]{
-    background: linear-gradient(135deg,#0b1220,#0f1b33);
+background: linear-gradient(
+135deg,
+#f4f6fb 0%,
+#eef2f9 35%,
+#e9eef7 60%,
+#f7f9fc 100%
+);
+color:#1f2937;
 }
 
-/* içerik genişlik */
+/* sayfa genişlik */
 .block-container{
-    padding-top: 40px;
-    max-width: 1400px;
+max-width:1450px;
+padding-top:30px;
 }
 
 /* LOGIN KART (Streamlit form) */
 section.main [data-testid="stForm"]{
-    background:#f4f4f4;
-    padding:40px;
-    border-radius:18px;
-    width:420px;
-    max-width:100%;
-    margin-left:auto;
-    margin-right:auto;
-    box-shadow:0 10px 40px rgba(0,0,0,0.35);
+background:#ffffff;
+padding:40px;
+border-radius:18px;
+width:420px;
+max-width:100%;
+margin-left:auto;
+margin-right:auto;
+box-shadow:0 10px 30px rgba(15,23,42,0.08);
 }
 
 /* LOGO */
 .login-logo{
-    display:block;
-    margin:auto;
-    width:160px;
-    margin-bottom:20px;
+display:block;
+margin:auto;
+width:160px;
+margin-bottom:20px;
 }
 
-/* INPUT LABEL RENK */
+/* INPUT LABEL */
 label{
-    color:#1a1a1a !important;
-    font-weight:500;
+color:#1f2937 !important;
+font-weight:500;
 }
 
-/* INPUT */
-input{
-    background:#2c2f38 !important;
-    color:white !important;
-}
-
-/* placeholder */
 input::placeholder{
-    color:#bfc5d2;
+color:#6b7280;
 }
 
-/* buton */
+/* kartlar */
 .stButton>button{
-    background:#0f172a;
-    color:white;
-    border-radius:8px;
-    height:45px;
-    font-weight:600;
+background:#111827;
+color:white;
 }
 
-/* tablo genişlik */
+/* filtre alanları */
+[data-baseweb="select"]{
+background:white;
+border-radius:8px;
+}
+
+/* tablo kontrast */
 [data-testid="stDataFrame"]{
-    width:100% !important;
+background:white;
+border-radius:12px;
+padding:10px;
+width:100% !important;
 }
 
-/* scroll bar incelt */
+/* başlık alt yazı */
+.css-10trblm{
+color:#374151;
+}
+
+/* input alanları */
+input{
+background:white !important;
+color:#111827 !important;
+border:1px solid #d1d5db !important;
+}
+
+/* genel font rengi */
+body{
+color:#111827;
+}
+
 ::-webkit-scrollbar{
-    height:8px;
+height:8px;
 }
 
 </style>

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import datetime
 import hashlib
 import html
@@ -20,8 +21,11 @@ from streamlit.column_config import (
 )
 from supabase import create_client
 
-SUPABASE_URL = "https://xpllqdbwtiyhycskvyfr.supabase.co"
-SUPABASE_KEY = "sb_publishable_C0xXpkSgwmu312wyI-VPrg_-jTFimQ0"
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+
+if not SUPABASE_URL or not SUPABASE_KEY:
+    raise ValueError("Supabase environment variables eksik")
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 

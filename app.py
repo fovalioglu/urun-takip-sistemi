@@ -37,11 +37,11 @@ background: linear-gradient(
 color:#1f2937;
 }
 
-/* ANA İÇERİK GENİŞLİĞİ */
+/* ANA İÇERİK GENİŞLİĞİ — tablo için maksimum yatay alan */
 .block-container{
 max-width: 100% !important;
-padding-left:56px !important;
-padding-right:56px !important;
+padding-left:12px !important;
+padding-right:12px !important;
 padding-top:25px;
 }
 
@@ -87,8 +87,9 @@ background:white;
 border-radius:8px;
 }
 
-/* tablo kontrast */
-[data-testid="stDataFrame"]{
+/* tablo / düzenleyici — tam genişlik */
+[data-testid="stDataFrame"],
+[data-testid="stDataEditor"]{
 background:white;
 border-radius:12px;
 padding:10px;
@@ -96,9 +97,10 @@ width:100% !important;
 max-width:100% !important;
 }
 
-/* tablo container */
-.stDataFrame{
+.stDataFrame,
+[data-testid="stDataEditor"] > div{
 width:100% !important;
+max-width:100% !important;
 }
 
 /* üst filtre satırı da genişlesin */
@@ -114,8 +116,8 @@ max-width:100% !important;
 
 /* gereksiz marginleri temizle */
 .css-18e3th9{
-padding-left:56px !important;
-padding-right:56px !important;
+padding-left:12px !important;
+padding-right:12px !important;
 }
 
 /* başlık alt yazı */
@@ -881,12 +883,13 @@ def _series_to_bool_normalized(s: pd.Series) -> pd.Series:
 
 
 def normalize_dataframe_for_streamlit_editor(df: pd.DataFrame) -> pd.DataFrame:
-    """st.dataframe öncesi: tipleri Streamlit ile uyumlu hale getirir (sütun sırası aynı)."""
+    """st.data_editor / dataframe öncesi: tipleri Streamlit ile uyumlu hale getirir (sütun sırası aynı)."""
     out = df.copy()
     if out.empty:
         return out
     for col in out.columns:
         if col == COL_DAB:
+            out[col] = pd.to_numeric(out[col], errors="coerce").astype("Int64")
             continue
         cname = str(col)
         if ("Termin" in cname) or ("Tarih" in cname):
@@ -1813,11 +1816,31 @@ with _dl2:
             use_container_width=True,
         )
 
-st.dataframe(
+if COL_URUN in editor_df.columns:
+    st.session_state["_editor_row_urun_keys"] = (
+        editor_df[COL_URUN].astype(str).str.strip().tolist()
+    )
+else:
+    st.session_state.pop("_editor_row_urun_keys", None)
+
+_edited_raw = st.data_editor(
     editor_df,
     use_container_width=True,
     hide_index=True,
+    num_rows="dynamic",
+    key="urun_tablo_data_editor",
 )
+_edited_aligned = _edited_raw.reindex(columns=list(editor_df.columns))
+edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
+_base = editor_df.reset_index(drop=True)
+_edited_norm = edited_df.reset_index(drop=True)
+try:
+    _tablo_degisti = not _edited_norm.equals(_base)
+except (TypeError, ValueError):
+    _tablo_degisti = True
+if _tablo_degisti:
+    if persist_table_edits(edited_df, toast_message="Tablo güncellendi."):
+        st.rerun()
 
 _err = st.session_state.get("_autosave_err")
 if _err:

@@ -145,7 +145,6 @@ height:8px;
 )
 
 import datetime
-import hashlib
 import html
 import time
 from io import BytesIO, StringIO
@@ -154,15 +153,6 @@ from urllib.parse import quote
 
 import pandas as pd
 
-from streamlit.column_config import (
-    CheckboxColumn,
-    Column,
-    DatetimeColumn,
-    ImageColumn,
-    NumberColumn,
-    SelectboxColumn,
-    TextColumn,
-)
 from supabase import create_client
 
 supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
@@ -881,23 +871,6 @@ def tablo_oturum_kullanicisi() -> str:
     return str(u).strip() if u else KULLANICI_TABLO
 
 
-EDITOR_DATE_COLS: frozenset[str] = frozenset(
-    {COL_CREATED, COL_DSM, COL_ATOLYE_TERM}
-)
-EDITOR_NUMERIC_COLS: frozenset[str] = frozenset(
-    {COL_KESIM, COL_SB_ID, *NUMERIC_COLS_KEEP}
-)
-EDITOR_TEXT_COLS: frozenset[str] = frozenset(
-    {
-        COL_URUN,
-        COL_URUN_ADI,
-        COL_BEDEN,
-        COL_PLM,
-        COL_RENK,
-        COL_ATOLYE,
-        COL_AUDIT,
-    }
-)
 EDITOR_BOOL_COLS: frozenset[str] = frozenset(
     {
         "Fit Onayı",
@@ -922,19 +895,6 @@ _TR_STATUS_TO_BOOL: dict[str, bool] = {
     "yes": True,
     "no": False,
 }
-
-
-def _cell_to_plain_str(val: object) -> str:
-    if val is None or val is pd.NA:
-        return ""
-    try:
-        if pd.isna(val):
-            return ""
-    except (TypeError, ValueError):
-        pass
-    if isinstance(val, str) and val.strip().lower() in ("nan", "none", "<na>"):
-        return ""
-    return str(val)
 
 
 def _series_to_bool_normalized(s: pd.Series) -> pd.Series:
@@ -965,134 +925,35 @@ def _series_to_bool_normalized(s: pd.Series) -> pd.Series:
 
 
 def normalize_dataframe_for_streamlit_editor(df: pd.DataFrame) -> pd.DataFrame:
-    """column_config / data_editor öncesi: Supabase kaynaklı karışık tipleri güvenli tiplere çeker."""
-    if df.empty:
-        return df.copy()
+    """st.dataframe öncesi: tipleri Streamlit ile uyumlu hale getirir (sütun sırası aynı)."""
     out = df.copy()
+    if out.empty:
+        return out
     for col in out.columns:
         if col == COL_DAB:
             continue
-        if col in EDITOR_NUMERIC_COLS:
+        cname = str(col)
+        if ("Termin" in cname) or ("Tarih" in cname):
+            dts = pd.to_datetime(out[col], errors="coerce")
+            out[col] = dts.dt.strftime("%Y-%m-%d").where(dts.notna(), "")
+            continue
+        if col == COL_CREATED:
+            dts = pd.to_datetime(out[col], errors="coerce")
+            out[col] = dts.dt.strftime("%Y-%m-%d %H:%M").where(dts.notna(), "")
+            continue
+        if ("Adet" in cname) or (col == COL_SB_ID):
             out[col] = pd.to_numeric(out[col], errors="coerce")
             if col in (COL_KESIM, COL_SB_ID):
                 out[col] = out[col].astype("Int64")
             continue
-        if col in EDITOR_DATE_COLS:
-            out[col] = pd.to_datetime(out[col], errors="coerce")
-            continue
         if col in EDITOR_BOOL_COLS:
             out[col] = _series_to_bool_normalized(out[col])
             continue
-        if col == COL_FASON:
-            out[col] = out[col].map(
-                lambda x: (
-                    ""
-                    if x is None or x is pd.NA or (isinstance(x, float) and pd.isna(x))
-                    else str(x).strip()
-                )
-            )
-            continue
-        if col in EDITOR_TEXT_COLS:
-            out[col] = out[col].map(_cell_to_plain_str)
-            continue
-        out[col] = out[col].map(_cell_to_plain_str)
+        s = out[col].astype(str)
+        out[col] = s.replace(
+            to_replace=r"^(nan|NaT|None|<NA>)$", value="", regex=True
+        )
     return out
-
-
-def build_table_column_config(columns: list[str]) -> dict[str, object]:
-    tip = (
-        "Son düzenleyen ve tarih: satırdaki **Son değişiklik** sütununda "
-        f"({tablo_oturum_kullanicisi()} kayıtları log.csv içinde)."
-    )
-    cfg: dict[str, object] = {}
-    for c in columns:
-        if c == COL_AUDIT:
-            cfg[c] = TextColumn(
-                COL_AUDIT,
-                help=(
-                    "Bu satırda izlenen sütunlar için log.csv’deki son kayıt özeti. "
-                    "Hücre üzerine gelindiğinde başlık ipucu: sütun adının yanındaki ? işareti."
-                ),
-                disabled=True,
-                width="large",
-            )
-        elif c == COL_DAB:
-            cfg[c] = ImageColumn(
-                COL_DAB,
-                help="Gün farkı ve renk göstergesi (gecikme / kritik / yaklaşıyor / normal). Kayıtta terminlerden yeniden hesaplanır.",
-                width="small",
-            )
-        elif c == COL_SB_ID:
-            cfg[c] = NumberColumn(
-                COL_SB_ID,
-                help="Supabase kayıt numarası (salt okunur).",
-                disabled=True,
-                format="%d",
-            )
-        elif c == COL_CREATED:
-            cfg[c] = DatetimeColumn(
-                COL_CREATED,
-                help="Kaydın oluşturulma zamanı (salt okunur).",
-                disabled=True,
-                format="DD.MM.YYYY HH:mm",
-            )
-        elif c == COL_URUN:
-            cfg[c] = TextColumn(
-                COL_URUN,
-                help="Yeni satır eklerken ürün kodunu buraya yazın.",
-                disabled=False,
-                width="medium",
-                pinned=True,
-            )
-        elif c == COL_URUN_ADI:
-            cfg[c] = TextColumn(COL_URUN_ADI, help=tip, disabled=False)
-        elif c == COL_BEDEN:
-            cfg[c] = TextColumn(COL_BEDEN, help=tip, disabled=False)
-        elif c == COL_PLM:
-            cfg[c] = TextColumn(COL_PLM, help=tip, disabled=False)
-        elif c == COL_RENK:
-            cfg[c] = TextColumn(COL_RENK, help=tip, disabled=False)
-        elif c == COL_ATOLYE:
-            cfg[c] = TextColumn(COL_ATOLYE, help=tip, disabled=False)
-        elif c == COL_KESIM:
-            cfg[c] = NumberColumn(
-                COL_KESIM,
-                help=tip,
-                disabled=False,
-                min_value=0,
-                step=1,
-                format="%d",
-            )
-        elif c == COL_FASON:
-            cfg[c] = SelectboxColumn(
-                COL_FASON,
-                help=tip,
-                disabled=False,
-                options=list(FASON_OPTIONS),
-            )
-        elif c == COL_DSM:
-            cfg[c] = DatetimeColumn(
-                COL_DSM,
-                help=tip,
-                disabled=False,
-                format="DD.MM.YYYY",
-            )
-        elif c == COL_ATOLYE_TERM:
-            cfg[c] = DatetimeColumn(
-                COL_ATOLYE_TERM,
-                help=tip,
-                disabled=False,
-                format="DD.MM.YYYY",
-            )
-        elif c in EDITOR_BOOL_COLS:
-            cfg[c] = CheckboxColumn(
-                str(c),
-                help=tip,
-                disabled=True,
-            )
-        else:
-            cfg[c] = Column(disabled=True)
-    return cfg
 
 
 def _resolve_row_ix(
@@ -1287,64 +1148,6 @@ def ensure_last_save_bootstrap() -> None:
 
 def mark_data_file_saved() -> None:
     st.session_state["_last_save_at"] = datetime.datetime.now().replace(microsecond=0)
-
-
-def _strip_editor_display_cols(df: object) -> object:
-    if not hasattr(df, "columns"):
-        return df
-    extra = [c for c in (COL_AUDIT,) if c in df.columns]
-    return df.drop(columns=extra, errors="ignore")
-
-
-def _editor_content_dirty(editor_df: object, edited_df: object) -> bool:
-    ed, ee = editor_df, edited_df
-    if isinstance(ee, dict):
-        if "data" in ee:
-            try:
-                ee = pd.DataFrame(ee["data"])
-            except Exception:
-                return True
-        else:
-            return True
-    if isinstance(ed, dict):
-        if "data" in ed:
-            try:
-                ed = pd.DataFrame(ed["data"])
-            except Exception:
-                return True
-        else:
-            return True
-    if not hasattr(ed, "columns") or not hasattr(ee, "columns"):
-        return True
-    a = _strip_editor_display_cols(ed)
-    b = _strip_editor_display_cols(ee)
-    if not hasattr(a, "columns") or not hasattr(b, "columns"):
-        return True
-    if list(a.columns) != list(b.columns) or len(a) != len(b):
-        return True
-    try:
-        return not a.reset_index(drop=True).equals(b.reset_index(drop=True))
-    except Exception:
-        return True
-
-
-def _editor_fingerprint(df: object) -> str | None:
-    if isinstance(df, dict):
-        if "data" in df:
-            try:
-                df = pd.DataFrame(df["data"])
-            except Exception:
-                return None
-        else:
-            return None
-    if not hasattr(df, "columns"):
-        return None
-    sub = _strip_editor_display_cols(df)
-    if not hasattr(sub, "columns"):
-        return None
-    return hashlib.sha256(
-        sub.astype(str).fillna("").to_csv(index=False).encode("utf-8")
-    ).hexdigest()
 
 
 def persist_table_edits(edited_df: object, *, toast_message: str | None) -> bool:
@@ -2021,7 +1824,6 @@ view = sort_by_dab_asc(filtered_df)
 view = drop_unnamed_columns(view)
 view = view.reset_index(drop=True)
 editor_full = prepare_for_data_editor(view)
-col_list = list(editor_full.columns)
 
 geciken, yaklasan = count_geciken_yaklasan(filtered_df)
 m1, m2, m3 = st.columns([1, 1, 1.35], gap="small")
@@ -2036,11 +1838,6 @@ with m3:
 
 editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
-st.session_state["_editor_row_urun_keys"] = (
-    editor_df[COL_URUN].astype(str).str.strip().tolist()
-    if COL_URUN in editor_df.columns
-    else []
-)
 excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 
 _dl1, _dl2 = st.columns([2, 1], gap="small")
@@ -2060,57 +1857,12 @@ with _dl2:
             use_container_width=True,
         )
 
-edited_df = st.data_editor(
+st.dataframe(
     editor_df,
     use_container_width=True,
-    num_rows="dynamic",
     hide_index=True,
-    column_order=col_list,
-    column_config=build_table_column_config(col_list),
-    key="urun_tablo_editor",
-    height=min(920, 42 + 35 * max(1, len(editor_df))),
 )
 
 _err = st.session_state.get("_autosave_err")
 if _err:
     st.error(_err)
-
-if _editor_content_dirty(editor_df, edited_df):
-    _fp = _editor_fingerprint(edited_df)
-    if _fp is not None and st.session_state.get("_autosave_stale_fp") != _fp:
-        st.session_state["_autosave_stale_fp"] = _fp
-        st.session_state["_autosave_deadline"] = time.monotonic() + 1.0
-else:
-    st.session_state.pop("_autosave_stale_fp", None)
-    st.session_state.pop("_autosave_deadline", None)
-
-st.session_state["_editor_baseline_fp"] = _editor_fingerprint(editor_df)
-
-if hasattr(st, "fragment"):
-    @st.fragment(run_every=datetime.timedelta(milliseconds=300))
-    def _tablo_autosave_watch() -> None:
-        deadline = st.session_state.get("_autosave_deadline")
-        if deadline is None:
-            return
-        if time.monotonic() < deadline:
-            return
-        edited = st.session_state.get("urun_tablo_editor")
-        baseline_fp = st.session_state.get("_editor_baseline_fp")
-        if edited is None or baseline_fp is None:
-            return
-        cur_fp = _editor_fingerprint(edited)
-        if cur_fp is None:
-            return
-        if cur_fp == baseline_fp:
-            st.session_state.pop("_autosave_deadline", None)
-            return
-        if persist_table_edits(edited, toast_message="Otomatik kayıt"):
-            st.session_state.pop("_autosave_deadline", None)
-            st.session_state.pop("_autosave_stale_fp", None)
-            st.rerun()
-
-    _tablo_autosave_watch()
-
-if st.button("Değişiklikleri Kaydet", key="btn_tablo_kaydet"):
-    if persist_table_edits(edited_df, toast_message="Tablo kaydedildi."):
-        st.rerun()

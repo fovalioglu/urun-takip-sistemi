@@ -139,12 +139,6 @@ color:#111827;
 height:8px;
 }
 
-/* Sütun filtre bileşeni (components) tam genişlik */
-[data-testid="stIFrame"]{
-width:100% !important;
-min-width:100% !important;
-}
-
 </style>
 """,
     unsafe_allow_html=True,
@@ -158,11 +152,10 @@ from io import BytesIO, StringIO
 from pathlib import Path
 from urllib.parse import quote
 
-import json
 import pandas as pd
-import streamlit.components.v1 as st_components
 
 from streamlit.column_config import (
+    CheckboxColumn,
     Column,
     DatetimeColumn,
     ImageColumn,
@@ -299,37 +292,6 @@ FASON_OPTIONS = [
     "Sevk Edildi",
     "Final",
 ]
-
-FILTER_HEADER_LABEL_MAP: dict[str, str] = {
-    COL_DSM: "DSM",
-    COL_ATOLYE_TERM: "Atölye T.",
-    COL_KESIM: "Adet",
-    "Kesim": "Kesim",
-    "Fit Onayı": "Fit",
-    COL_FASON: "Fason",
-    COL_URUN: "Ürün",
-    COL_URUN_ADI: "Ad",
-    COL_AUDIT: "Log",
-    COL_CREATED: "Oluşturma",
-    COL_SB_ID: "ID",
-    COL_DAB: "Gün",
-}
-
-UF_DROPDOWN_COLS: frozenset[str] = frozenset(
-    {
-        COL_RENK,
-        COL_ATOLYE,
-        COL_KESIM,
-        "Kesim",
-        COL_FASON,
-        "Fit Onayı",
-        "Çizildi",
-        "Kumaşı",
-        "Dantel",
-        "Sipariş",
-        "Etiket",
-    }
-)
 
 FILTER_TERMIN_OPTS: tuple[str, ...] = (
     "Hepsi",
@@ -896,267 +858,6 @@ def prepare_for_data_editor(view: pd.DataFrame) -> pd.DataFrame:
     return out
 
 
-_UF_OPTS_CAP = 250
-_UF_QUERY_PREFIX = "uf"
-
-
-def _filter_header_label(col: str) -> str:
-    if col in FILTER_HEADER_LABEL_MAP:
-        return FILTER_HEADER_LABEL_MAP[col]
-    if len(col) > 14:
-        return col[:13] + "…"
-    return col
-
-
-def _cell_as_filter_label(val: object, col: str) -> str:
-    """Filtre eşlemesi için hücrenin metin karşılığı (tarih/sayı biçimleri dahil)."""
-    if val is None or val is pd.NA:
-        return ""
-    if isinstance(val, str) and not val.strip():
-        return ""
-    if isinstance(val, (float,)) and pd.isna(val):
-        return ""
-    if col in (COL_DSM, COL_ATOLYE_TERM):
-        ts = pd.to_datetime(val, errors="coerce")
-        if pd.isna(ts):
-            return ""
-        return ts.strftime("%d.%m.%Y")
-    if col == COL_CREATED:
-        ts = pd.to_datetime(val, errors="coerce")
-        if pd.isna(ts):
-            return ""
-        return ts.strftime("%d.%m.%Y %H:%M")
-    if col in (COL_KESIM, COL_SB_ID):
-        g = pd.to_numeric(val, errors="coerce")
-        if pd.isna(g):
-            return ""
-        return str(int(g))
-    return str(val).strip()
-
-
-def _column_filter_is_dropdown(col: str) -> bool:
-    return col in UF_DROPDOWN_COLS
-
-
-def _column_filter_dropdown_options(col: str, ser: pd.Series) -> list[str]:
-    if col == COL_FASON:
-        from_data = sorted(
-            {
-                str(x).strip()
-                for x in ser.dropna().astype(str).unique()
-                if str(x).strip()
-            }
-        )
-        merged = sorted(set(FASON_OPTIONS) | set(from_data))
-        return merged[:_UF_OPTS_CAP]
-    raw = ser.dropna().astype(str).str.strip()
-    raw = raw[raw.str.len() > 0]
-    return sorted(raw.unique().tolist())[:_UF_OPTS_CAP]
-
-
-def parse_uf_query_params(col_list: list[str]) -> dict[str, str]:
-    """uf0..ufN sorgu parametreleri → sütun adı → filtre değeri."""
-    qp = st.query_params
-    out: dict[str, str] = {}
-    for i, col in enumerate(col_list):
-        key = f"{_UF_QUERY_PREFIX}{i}"
-        if key not in qp:
-            continue
-        raw = qp[key]
-        v = raw[0] if isinstance(raw, list) else raw
-        if v is not None and str(v).strip():
-            out[col] = str(v).strip()
-    return out
-
-
-def render_unified_column_filter_row(
-    editor_full: pd.DataFrame,
-    col_list: list[str],
-    active_by_col: dict[str, str],
-) -> None:
-    """Tek flex satırı: kısa başlık + 32px filtre; URL ile senkron (data_editor ile hizaya en yakın)."""
-    if not col_list:
-        return
-    cols_payload: list[dict[str, object]] = []
-    for i, col in enumerate(col_list):
-        ser = (
-            editor_full[col]
-            if col in editor_full.columns
-            else pd.Series(dtype=object)
-        )
-        is_dd = _column_filter_is_dropdown(col)
-        opts = _column_filter_dropdown_options(col, ser) if is_dd else []
-        cols_payload.append(
-            {
-                "i": i,
-                "label": _filter_header_label(str(col)),
-                "full": str(col),
-                "kind": "select" if is_dd else "text",
-                "options": opts,
-                "value": str(active_by_col.get(col, "") or ""),
-            }
-        )
-    cfg = {"cols": cols_payload, "prefix": _UF_QUERY_PREFIX, "n": len(cols_payload)}
-    json_txt = json.dumps(cfg, ensure_ascii=False).replace("<", "\\u003c")
-    html_block = f"""
-<div id="uts-uf-root" style="background:#f8f9fb;border-bottom:1px solid #e6e8ee;padding:8px 4px 10px;font-family:system-ui,-apple-system,sans-serif;">
-  <div style="display:flex;justify-content:flex-end;margin-bottom:6px;">
-    <button type="button" id="uts-uf-clear" style="font-size:11px;color:#64748b;background:none;border:none;cursor:pointer;padding:2px 6px;">Filtreleri temizle</button>
-  </div>
-  <div id="uts-uf-row" style="display:flex;align-items:flex-end;gap:4px;width:100%;box-sizing:border-box;"></div>
-</div>
-<style>
-.uts-uf-cell{{flex:1 1 0;min-width:116px;max-width:360px;display:flex;flex-direction:column;gap:5px;box-sizing:border-box;}}
-.uts-uf-lbl{{font-size:12px;font-weight:600;color:#374151;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}}
-.uts-uf-inp,.uts-uf-sel{{width:100%;height:32px;box-sizing:border-box;border:1px solid #d1d5db;border-radius:6px;padding:0 10px;font-size:12px;color:#111827;background:#fff;}}
-.uts-uf-inp:focus,.uts-uf-sel:focus{{outline:none;border-color:#94a3b8;box-shadow:0 0 0 1px #e2e8f0;}}
-.uts-uf-sel{{
-  appearance:none;-webkit-appearance:none;-moz-appearance:none;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath fill='%2364748b' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
-  background-repeat:no-repeat;background-position:right 10px center;padding-right:26px;
-  cursor:pointer;
-}}
-</style>
-<script type="application/json" id="uts-uf-payload">{json_txt}</script>
-<script>
-(function(){{
-  var el = document.getElementById('uts-uf-payload');
-  if (!el) return;
-  var cfg = JSON.parse(el.textContent);
-  var row = document.getElementById('uts-uf-row');
-  var prefix = cfg.prefix || 'uf';
-  var n = cfg.n;
-  cfg.cols.forEach(function(c){{
-    var cell = document.createElement('div');
-    cell.className = 'uts-uf-cell';
-    var lb = document.createElement('div');
-    lb.className = 'uts-uf-lbl';
-    lb.textContent = c.label;
-    lb.title = c.full;
-    var ctrl;
-    if (c.kind === 'select') {{
-      ctrl = document.createElement('select');
-      ctrl.className = 'uts-uf-sel';
-      ctrl.id = 'ufc_' + c.i;
-      var o0 = document.createElement('option');
-      o0.value = '';
-      o0.textContent = 'Tümü';
-      ctrl.appendChild(o0);
-      (c.options || []).forEach(function(t){{
-        var o = document.createElement('option');
-        o.value = t;
-        o.textContent = t.length > 34 ? t.slice(0, 31) + '…' : t;
-        ctrl.appendChild(o);
-      }});
-      ctrl.value = c.value || '';
-    }} else {{
-      ctrl = document.createElement('input');
-      ctrl.type = 'text';
-      ctrl.className = 'uts-uf-inp';
-      ctrl.id = 'ufc_' + c.i;
-      ctrl.value = c.value || '';
-      ctrl.placeholder = 'Filtre…';
-      ctrl.autocomplete = 'off';
-    }}
-    cell.appendChild(lb);
-    cell.appendChild(ctrl);
-    row.appendChild(cell);
-  }});
-  function syncUrl(){{
-    var u = new URL(window.parent.location.href);
-    for (var k = 0; k < n; k++) {{
-      u.searchParams.delete(prefix + k);
-    }}
-    cfg.cols.forEach(function(c){{
-      var node = document.getElementById('ufc_' + c.i);
-      if (!node) return;
-      var val = node.value;
-      if (val) u.searchParams.set(prefix + c.i, val);
-    }});
-    window.parent.location.href = u.toString();
-  }}
-  var tmr = null;
-  function debSync(){{ clearTimeout(tmr); tmr = setTimeout(syncUrl, 400); }}
-  cfg.cols.forEach(function(c){{
-    var node = document.getElementById('ufc_' + c.i);
-    if (!node) return;
-    if (c.kind === 'select') node.addEventListener('change', syncUrl);
-    else {{
-      node.addEventListener('input', debSync);
-      node.addEventListener('change', syncUrl);
-    }}
-  }});
-  var clr = document.getElementById('uts-uf-clear');
-  if (clr) clr.addEventListener('click', function(){{
-    var u = new URL(window.parent.location.href);
-    for (var k = 0; k < n; k++) u.searchParams.delete(prefix + k);
-    window.parent.location.href = u.toString();
-  }});
-  try {{
-    var fr = window.frameElement;
-    if (fr && fr.parentElement) {{
-      var s = fr.parentElement.style;
-      s.position = 'sticky';
-      s.top = '0';
-      s.zIndex = '1000';
-      s.background = '#f8f9fb';
-    }}
-  }} catch (e) {{}}
-}})();
-</script>
-"""
-    row_h = min(220, 96 + (len(col_list) // 18) * 8)
-    st_components.html(html_block, height=row_h, scrolling=False)
-
-
-def apply_inline_column_filters(
-    editor_full: pd.DataFrame,
-    view: pd.DataFrame,
-    filt: dict[str, str],
-) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Başlık altı filtreler (tam eşleşme: dropdown; kısmi: metin / tarih metni)."""
-    if not filt:
-        return editor_full.copy(), view.copy()
-    mask = pd.Series(True, index=editor_full.index)
-    for col, needle in filt.items():
-        if col not in editor_full.columns:
-            continue
-        use_sel = _column_filter_is_dropdown(col)
-        if col == COL_DAB:
-            vn = pd.to_numeric(view[col], errors="coerce")
-            n = needle.strip()
-            if n.isdigit() or (n.startswith("-") and n[1:].isdigit()):
-                mask &= vn == int(n)
-            else:
-                mask &= (
-                    vn.astype(str)
-                    .str.replace(r"\.0$", "", regex=True)
-                    .str.contains(n, case=False, na=False, regex=False)
-                )
-            continue
-        if use_sel:
-            labs = editor_full[col].map(lambda v, c=col: _cell_as_filter_label(v, c))
-            mask &= (
-                labs.astype(str).str.strip().str.casefold()
-                == needle.strip().casefold()
-            )
-            continue
-        if col in (COL_DSM, COL_ATOLYE_TERM, COL_CREATED):
-            labs = editor_full[col].map(lambda v, c=col: _cell_as_filter_label(v, c))
-            mask &= labs.str.contains(needle, case=False, na=False, regex=False)
-            continue
-        ser = editor_full[col].map(
-            lambda x: "" if x is None or pd.isna(x) else str(x).strip()
-        )
-        mask &= ser.str.contains(needle, case=False, na=False, regex=False)
-    m = mask.fillna(False)
-    ix = editor_full.index[m]
-    return (
-        editor_full.loc[ix].reset_index(drop=True),
-        view.loc[ix].reset_index(drop=True),
-    )
-
-
 def tablo_gorunumu_excel_df(view: pd.DataFrame, editor_df: pd.DataFrame) -> pd.DataFrame:
     """Tablodaki sütun sırası; D-A=T sayısal (görüntü URL’si değil); index yok."""
     out = editor_df.copy()
@@ -1178,6 +879,124 @@ def to_excel_bytes(df: pd.DataFrame) -> bytes | None:
 def tablo_oturum_kullanicisi() -> str:
     u = st.session_state.get("user")
     return str(u).strip() if u else KULLANICI_TABLO
+
+
+EDITOR_DATE_COLS: frozenset[str] = frozenset(
+    {COL_CREATED, COL_DSM, COL_ATOLYE_TERM}
+)
+EDITOR_NUMERIC_COLS: frozenset[str] = frozenset(
+    {COL_KESIM, COL_SB_ID, *NUMERIC_COLS_KEEP}
+)
+EDITOR_TEXT_COLS: frozenset[str] = frozenset(
+    {
+        COL_URUN,
+        COL_URUN_ADI,
+        COL_BEDEN,
+        COL_PLM,
+        COL_RENK,
+        COL_ATOLYE,
+        COL_AUDIT,
+    }
+)
+EDITOR_BOOL_COLS: frozenset[str] = frozenset(
+    {
+        "Fit Onayı",
+        "Çizildi",
+    }
+)
+
+_TR_STATUS_TO_BOOL: dict[str, bool] = {
+    "onaylandı": True,
+    "onaylanmadı": False,
+    "bekliyor": False,
+    "çizildi": True,
+    "çizilmedi": False,
+    "kesildi": True,
+    "kesilmedi": False,
+    "evet": True,
+    "hayır": False,
+    "true": True,
+    "false": False,
+    "1": True,
+    "0": False,
+    "yes": True,
+    "no": False,
+}
+
+
+def _cell_to_plain_str(val: object) -> str:
+    if val is None or val is pd.NA:
+        return ""
+    try:
+        if pd.isna(val):
+            return ""
+    except (TypeError, ValueError):
+        pass
+    if isinstance(val, str) and val.strip().lower() in ("nan", "none", "<na>"):
+        return ""
+    return str(val)
+
+
+def _series_to_bool_normalized(s: pd.Series) -> pd.Series:
+    out: list[object] = []
+    for v in s.tolist():
+        if v is None or v is pd.NA:
+            out.append(pd.NA)
+            continue
+        if isinstance(v, bool):
+            out.append(v)
+            continue
+        if isinstance(v, (int, float)) and not isinstance(v, bool):
+            if isinstance(v, float) and pd.isna(v):
+                out.append(pd.NA)
+            elif int(v) == 1:
+                out.append(True)
+            elif int(v) == 0:
+                out.append(False)
+            else:
+                out.append(pd.NA)
+            continue
+        k = str(v).strip().casefold()
+        if k in _TR_STATUS_TO_BOOL:
+            out.append(_TR_STATUS_TO_BOOL[k])
+        else:
+            out.append(pd.NA)
+    return pd.Series(out, index=s.index, dtype="boolean")
+
+
+def normalize_dataframe_for_streamlit_editor(df: pd.DataFrame) -> pd.DataFrame:
+    """column_config / data_editor öncesi: Supabase kaynaklı karışık tipleri güvenli tiplere çeker."""
+    if df.empty:
+        return df.copy()
+    out = df.copy()
+    for col in out.columns:
+        if col == COL_DAB:
+            continue
+        if col in EDITOR_NUMERIC_COLS:
+            out[col] = pd.to_numeric(out[col], errors="coerce")
+            if col in (COL_KESIM, COL_SB_ID):
+                out[col] = out[col].astype("Int64")
+            continue
+        if col in EDITOR_DATE_COLS:
+            out[col] = pd.to_datetime(out[col], errors="coerce")
+            continue
+        if col in EDITOR_BOOL_COLS:
+            out[col] = _series_to_bool_normalized(out[col])
+            continue
+        if col == COL_FASON:
+            out[col] = out[col].map(
+                lambda x: (
+                    ""
+                    if x is None or x is pd.NA or (isinstance(x, float) and pd.isna(x))
+                    else str(x).strip()
+                )
+            )
+            continue
+        if col in EDITOR_TEXT_COLS:
+            out[col] = out[col].map(_cell_to_plain_str)
+            continue
+        out[col] = out[col].map(_cell_to_plain_str)
+    return out
 
 
 def build_table_column_config(columns: list[str]) -> dict[str, object]:
@@ -1264,6 +1083,12 @@ def build_table_column_config(columns: list[str]) -> dict[str, object]:
                 help=tip,
                 disabled=False,
                 format="DD.MM.YYYY",
+            )
+        elif c in EDITOR_BOOL_COLS:
+            cfg[c] = CheckboxColumn(
+                str(c),
+                help=tip,
+                disabled=True,
             )
         else:
             cfg[c] = Column(disabled=True)
@@ -2209,11 +2034,8 @@ with m3:
         f"**Genel filtre sonrası:** {len(view)} satır · **Toplam veri:** {len(df)} satır"
     )
 
-_col_active = parse_uf_query_params(col_list)
-render_unified_column_filter_row(editor_full, col_list, _col_active)
-editor_df, view_for_excel = apply_inline_column_filters(
-    editor_full, view, _col_active
-)
+editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
+view_for_excel = view.copy()
 st.session_state["_editor_row_urun_keys"] = (
     editor_df[COL_URUN].astype(str).str.strip().tolist()
     if COL_URUN in editor_df.columns
@@ -2223,7 +2045,7 @@ excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 
 _dl1, _dl2 = st.columns([2, 1], gap="small")
 with _dl1:
-    st.caption(f"**Gösterilen (sütun filtresi ile):** {len(editor_df)} satır")
+    st.caption(f"**Gösterilen:** {len(editor_df)} satır")
 with _dl2:
     _xlsx = to_excel_bytes(excel_export_df)
     if _xlsx is None:

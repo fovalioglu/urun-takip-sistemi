@@ -149,8 +149,6 @@ import html
 import time
 from io import BytesIO, StringIO
 from pathlib import Path
-from urllib.parse import quote
-
 import pandas as pd
 
 from supabase import create_client
@@ -770,48 +768,6 @@ def _vals_equal_for_diff(a: object, b: object, col: str) -> bool:
     return _str_norm(a) == _str_norm(b)
 
 
-def _dab_renk(gun: int) -> str:
-    if gun < 0:
-        return "#ff4d4f"
-    if gun <= 3:
-        return "#fa8c16"
-    if gun <= 7:
-        return "#fadb14"
-    return "#52c41a"
-
-
-def _svg_escape_text(s: str) -> str:
-    return (
-        s.replace("&", "&amp;")
-        .replace("<", "&lt;")
-        .replace(">", "&gt;")
-        .replace('"', "&quot;")
-    )
-
-
-def _dab_display_for_editor(val: object) -> str:
-    """Küçük renk göstergesi (28×6) + gün metni; data_editor HTML göstermediği için SVG data URL."""
-    gnum = pd.to_numeric(val, errors="coerce")
-    if val is None or val is pd.NA or pd.isna(gnum):
-        return ""
-    g = int(gnum)
-    renk = _dab_renk(g)
-    label = _svg_escape_text(str(g))
-    # HTML örneğiyle aynı düzen: bar 28×6 rx4, gap 6, metin; toplam genişlik kompakt
-    w, h = 72, 14
-    bar_y = (h - 6) / 2
-    text_x = 28 + 6
-    svg = (
-        f'<svg xmlns="http://www.w3.org/2000/svg" width="{w}" height="{h}" '
-        f'viewBox="0 0 {w} {h}">'
-        f'<rect x="0" y="{bar_y}" width="28" height="6" rx="4" ry="4" fill="{renk}"/>'
-        f'<text x="{text_x}" y="{h / 2}" dominant-baseline="middle" '
-        f'font-family="system-ui,sans-serif" font-size="11" fill="#31333F">{label}</text>'
-        f"</svg>"
-    )
-    return "data:image/svg+xml;utf8," + quote(svg)
-
-
 def audit_summary_for_urun(urun_kodu: str, log_df: pd.DataFrame) -> str:
     if log_df.empty or not str(urun_kodu).strip():
         return ""
@@ -844,12 +800,12 @@ def prepare_for_data_editor(view: pd.DataFrame) -> pd.DataFrame:
         if tc in out.columns:
             out[tc] = pd.to_datetime(out[tc], errors="coerce")
     if COL_DAB in out.columns:
-        out[COL_DAB] = out[COL_DAB].map(_dab_display_for_editor)
+        out[COL_DAB] = pd.to_numeric(out[COL_DAB], errors="coerce").astype("Int64")
     return out
 
 
 def tablo_gorunumu_excel_df(view: pd.DataFrame, editor_df: pd.DataFrame) -> pd.DataFrame:
-    """Tablodaki sütun sırası; D-A=T sayısal (görüntü URL’si değil); index yok."""
+    """Tablodaki sütun sırası; D-A=T sayısal; index yok."""
     out = editor_df.copy()
     if COL_DAB in view.columns and COL_DAB in out.columns:
         out[COL_DAB] = pd.to_numeric(view[COL_DAB], errors="coerce").astype("Int64")

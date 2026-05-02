@@ -1804,9 +1804,18 @@ editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
 excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 
+df_display = editor_df.copy()
+if len(df_display) > 100:
+    df_display = df_display.iloc[:100]
+
 _dl1, _dl2 = st.columns([2, 1], gap="small")
 with _dl1:
-    st.caption(f"**Gösterilen:** {len(editor_df)} satır")
+    if len(editor_df) > 100:
+        st.caption(
+            f"**Gösterilen:** ilk 100 satır (filtre sonrası toplam {len(editor_df)} satır)"
+        )
+    else:
+        st.caption(f"**Gösterilen:** {len(df_display)} satır")
 with _dl2:
     _xlsx = to_excel_bytes(excel_export_df)
     if _xlsx is None:
@@ -1821,23 +1830,24 @@ with _dl2:
             use_container_width=True,
         )
 
-if COL_URUN in editor_df.columns:
+if COL_URUN in df_display.columns:
     st.session_state["_editor_row_urun_keys"] = (
-        editor_df[COL_URUN].astype(str).str.strip().tolist()
+        df_display[COL_URUN].astype(str).str.strip().tolist()
     )
 else:
     st.session_state.pop("_editor_row_urun_keys", None)
 
 _edited_raw = st.data_editor(
-    editor_df,
+    df_display,
+    height=700,
     use_container_width=True,
     hide_index=True,
     num_rows="dynamic",
-    key="urun_tablo_data_editor",
+    key="main_table",
 )
-_edited_aligned = _edited_raw.reindex(columns=list(editor_df.columns))
+_edited_aligned = _edited_raw.reindex(columns=list(df_display.columns))
 edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
-_base = editor_df.reset_index(drop=True)
+_base = df_display.reset_index(drop=True)
 _edited_norm = edited_df.reset_index(drop=True)
 try:
     _tablo_degisti = not _edited_norm.equals(_base)

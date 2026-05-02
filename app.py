@@ -222,6 +222,7 @@ COL_KESIM = "Kesim Adedi"
 COL_FASON = "Fason Durum"
 COL_DSM = "DSM Termin"
 COL_ATOLYE_TERM = "Atölye Termin"
+COL_TAMAMLANDI = "Tamamlandı"
 COL_AUDIT = "Son değişiklik"
 
 SB_TABLE_URUNLER = "urunler"
@@ -238,11 +239,30 @@ SB_TO_APP: dict[str, str] = {
     "fason_durum": COL_FASON,
     "dsm_termin": COL_DSM,
     "atolye_termin": COL_ATOLYE_TERM,
+    "tamamlandi": COL_TAMAMLANDI,
 }
 APP_TO_SB: dict[str, str] = {app: sb for sb, app in SB_TO_APP.items()}
 KULLANICI_TABLO = "admin"
 USER_FILE = "users.csv"
 VERILER_CSV = "veriler.csv"
+
+
+def _coerce_bool_loose(val: object) -> bool:
+    if val is True or val is False:
+        return bool(val)
+    if val is None or val is pd.NA:
+        return False
+    if isinstance(val, float) and pd.isna(val):
+        return False
+    if isinstance(val, (int, float)) and not isinstance(val, bool):
+        try:
+            return int(val) != 0
+        except (TypeError, ValueError):
+            return False
+    sl = str(val).strip().lower()
+    if sl in ("true", "1", "yes", "evet", "x"):
+        return True
+    return False
 # İlk kurulumda boş users.csv için örnek hesaplar (dosyaya yazılır).
 DEFAULT_SEED_USERS: dict[str, str] = {
     "admin": "1234",
@@ -268,6 +288,7 @@ TABLE_EDIT_COLS: tuple[str, ...] = (
     COL_FASON,
     COL_DSM,
     COL_ATOLYE_TERM,
+    COL_TAMAMLANDI,
 )
 # Tabloda loglanacak tüm düzenlenebilir sütunlar (Ürün kodu en sonda; önce diğer alanlar güncellenir).
 LOG_EDIT_COLS: tuple[str, ...] = TABLE_EDIT_COLS + (COL_URUN,)
@@ -470,6 +491,8 @@ def merge_trendyol_into_base(
             new_row[COL_ATOLYE_TERM] = pd.NaT
             new_row[COL_FASON] = "Planlanacak"
             new_row[COL_DSM] = dsm_ts if dsm_ts is not None else pd.NaT
+            if COL_TAMAMLANDI in out.columns:
+                new_row[COL_TAMAMLANDI] = False
             out = pd.concat(
                 [out, pd.DataFrame([new_row], columns=out.columns)],
                 ignore_index=True,
@@ -541,6 +564,10 @@ def read_veriler_dataframe() -> pd.DataFrame:
             raw[app_col] = pd.NA
     if COL_SB_ID in raw.columns:
         raw[COL_SB_ID] = pd.to_numeric(raw[COL_SB_ID], errors="coerce").astype("Int64")
+    if COL_TAMAMLANDI in raw.columns:
+        raw[COL_TAMAMLANDI] = raw[COL_TAMAMLANDI].map(_coerce_bool_loose)
+    else:
+        raw[COL_TAMAMLANDI] = False
     return raw
 
 
@@ -653,6 +680,8 @@ def _scalar_for_supabase(app_col: str, val: object) -> object | None:
         if pd.isna(ts):
             return None
         return ts.strftime("%Y-%m-%d")
+    if app_col == COL_TAMAMLANDI:
+        return bool(_coerce_bool_loose(val))
     if app_col == COL_KESIM:
         n = pd.to_numeric(val, errors="coerce")
         return int(n) if pd.notna(n) else 0
@@ -725,6 +754,8 @@ def _str_norm(val: object) -> str:
 
 
 def _is_missing_editor_val(val: object, col: str) -> bool:
+    if col == COL_TAMAMLANDI:
+        return False
     if col in (COL_DSM, COL_ATOLYE_TERM):
         return pd.isna(pd.to_datetime(val, errors="coerce"))
     if col == COL_KESIM:
@@ -733,6 +764,8 @@ def _is_missing_editor_val(val: object, col: str) -> bool:
 
 
 def _fmt_log_value(val: object) -> str:
+    if isinstance(val, bool):
+        return "evet" if val else "hayır"
     if val is None or (isinstance(val, float) and pd.isna(val)):
         return ""
     if isinstance(val, pd.Timestamp):
@@ -751,6 +784,8 @@ def _fmt_log_value(val: object) -> str:
 def _vals_equal_for_diff(a: object, b: object, col: str) -> bool:
     if col == COL_URUN:
         return _str_norm(a) == _str_norm(b)
+    if col == COL_TAMAMLANDI:
+        return _coerce_bool_loose(a) == _coerce_bool_loose(b)
     if col in (COL_DSM, COL_ATOLYE_TERM):
         ta = pd.to_datetime(a, errors="coerce")
         tb = pd.to_datetime(b, errors="coerce")
@@ -803,6 +838,13 @@ def prepare_for_data_editor(view: pd.DataFrame) -> pd.DataFrame:
             out[tc] = pd.to_datetime(out[tc], errors="coerce")
     if COL_DAB in out.columns:
         out[COL_DAB] = pd.to_numeric(out[COL_DAB], errors="coerce").astype("Int64")
+    if COL_TAMAMLANDI in out.columns:
+        out[COL_TAMAMLANDI] = out[COL_TAMAMLANDI].map(_coerce_bool_loose)
+    else:
+        out[COL_TAMAMLANDI] = False
+    if COL_TAMAMLANDI in out.columns and COL_AUDIT in out.columns:
+        others = [c for c in out.columns if c not in (COL_TAMAMLANDI, COL_AUDIT)]
+        out = out[others + [COL_TAMAMLANDI, COL_AUDIT]]
     return out
 
 
@@ -833,6 +875,7 @@ EDITOR_BOOL_COLS: frozenset[str] = frozenset(
     {
         "Fit Onayı",
         "Çizildi",
+        COL_TAMAMLANDI,
     }
 )
 
@@ -986,6 +1029,10 @@ def apply_table_save(
                     continue
                 if c in er.index:
                     new_row[c] = er.get(c)
+            if COL_TAMAMLANDI in full.columns:
+                new_row[COL_TAMAMLANDI] = _coerce_bool_loose(
+                    new_row.get(COL_TAMAMLANDI)
+                )
             for col in LOG_EDIT_COLS:
                 if col not in full.columns:
                     continue
@@ -1184,6 +1231,10 @@ def normalize_loaded_df(df: pd.DataFrame) -> pd.DataFrame:
         c = str(col)
         if "Termin" in c or "Tarih" in c or c == COL_CREATED:
             df[col] = pd.to_datetime(df[col], errors="coerce")
+    if COL_TAMAMLANDI in df.columns:
+        df[COL_TAMAMLANDI] = df[COL_TAMAMLANDI].map(_coerce_bool_loose)
+    else:
+        df[COL_TAMAMLANDI] = False
     return df
 
 
@@ -1450,6 +1501,11 @@ def build_row_dict(
     row[COL_FASON] = str(form["fason_durum"])
     row[COL_DSM] = pd.Timestamp(form["dsm_termin"])
     row[COL_ATOLYE_TERM] = pd.Timestamp(form["atolye_termin"])
+    if COL_TAMAMLANDI in df.columns:
+        if existing is not None and COL_TAMAMLANDI in existing.index:
+            row[COL_TAMAMLANDI] = _coerce_bool_loose(existing.get(COL_TAMAMLANDI))
+        else:
+            row[COL_TAMAMLANDI] = False
     return row
 
 
@@ -1731,7 +1787,7 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-flt_a, flt_u, flt_t, flt_f = st.columns(4, gap="small")
+flt_a, flt_u, flt_t, flt_f, flt_done = st.columns([1, 1, 1, 1, 1.05], gap="small")
 with flt_a:
     atolye_filter = st.selectbox(
         "Atölye",
@@ -1755,6 +1811,13 @@ with flt_f:
         "Fason Durum",
         FILTER_FASON_OPTS,
         key="f_fason",
+    )
+with flt_done:
+    show_completed = st.checkbox(
+        "Tamamlananları Göster",
+        value=False,
+        key="f_show_completed",
+        help="Kapalıyken yalnızca henüz tamamlanmamış kayıtlar listelenir.",
     )
 
 filtered_df = df.copy()
@@ -1784,6 +1847,14 @@ search_q = st.text_input(
 )
 filtered_df = filtered_df.loc[mask_global_text_search(filtered_df, search_q)]
 
+if (
+    not show_completed
+    and COL_TAMAMLANDI in filtered_df.columns
+    and not filtered_df.empty
+):
+    _tam_done = filtered_df[COL_TAMAMLANDI].map(_coerce_bool_loose)
+    filtered_df = filtered_df.loc[~_tam_done]
+
 view = sort_by_dab_asc(filtered_df)
 view = drop_unnamed_columns(view)
 view = view.reset_index(drop=True)
@@ -1796,9 +1867,17 @@ with m1:
 with m2:
     st.metric("Yaklaşan (0–3 gün)", yaklasan)
 with m3:
-    st.caption(
+    _cap = (
         f"**Genel filtre sonrası:** {len(view)} satır · **Toplam veri:** {len(df)} satır"
     )
+    if (
+        show_completed
+        and COL_TAMAMLANDI in filtered_df.columns
+        and not filtered_df.empty
+    ):
+        _ndone = int(filtered_df[COL_TAMAMLANDI].map(_coerce_bool_loose).sum())
+        _cap += f" · **Tamamlanan (bu liste):** {_ndone}"
+    st.caption(_cap)
 
 editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
@@ -1837,14 +1916,44 @@ if COL_URUN in df_display.columns:
 else:
     st.session_state.pop("_editor_row_urun_keys", None)
 
-_edited_raw = st.data_editor(
-    df_display,
-    height=700,
-    use_container_width=True,
-    hide_index=True,
-    num_rows="dynamic",
-    key="main_table",
-)
+_tamamlandi_colcfg: dict = {}
+if COL_TAMAMLANDI in df_display.columns:
+    _tamamlandi_colcfg[COL_TAMAMLANDI] = st.column_config.CheckboxColumn(
+        COL_TAMAMLANDI,
+        help="İşaretleyince kayıt tamamlanır ve veritabanına kaydedilir; "
+        "ana listede varsayılan olarak gizlenir.",
+        default=False,
+    )
+_de_kwargs: dict = {
+    "height": 700,
+    "use_container_width": True,
+    "hide_index": True,
+    "num_rows": "dynamic",
+    "key": "main_table",
+}
+if _tamamlandi_colcfg:
+    _de_kwargs["column_config"] = _tamamlandi_colcfg
+_edited_raw = st.data_editor(df_display, **_de_kwargs)
+
+if show_completed and COL_TAMAMLANDI in editor_df.columns:
+    _comp_prev = editor_df.loc[editor_df[COL_TAMAMLANDI].map(_coerce_bool_loose)]
+    if not _comp_prev.empty:
+        with st.expander(
+            f"Tamamlanan satırlar — soluk/gri önizleme ({len(_comp_prev)} adet, salt okunur)",
+            expanded=False,
+        ):
+            _show_g = _comp_prev.drop(columns=[COL_AUDIT], errors="ignore")
+            st.dataframe(
+                _show_g.style.set_properties(
+                    **{
+                        "background-color": "#e5e7eb",
+                        "color": "#4b5563",
+                    }
+                ),
+                use_container_width=True,
+                height=min(400, 48 + 32 * min(len(_show_g), 14)),
+            )
+            st.caption("Düzenleme üstteki ana tablodan yapılır.")
 _edited_aligned = _edited_raw.reindex(columns=list(df_display.columns))
 edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
 _base = df_display.reset_index(drop=True)

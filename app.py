@@ -1187,7 +1187,7 @@ def normalize_loaded_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-@st.cache_data(show_spinner="Veri yükleniyor…")
+@st.cache_data(ttl=30, show_spinner="Veri yükleniyor…")
 def load_data() -> pd.DataFrame:
     raw = read_veriler_dataframe()
     df = normalize_loaded_df(raw)
@@ -1577,6 +1577,7 @@ def render_login_screen() -> None:
         p = str(st.session_state.get("login_password", ""))
         ok, must_ch = authenticate(u, p)
         if ok:
+            st.session_state.logged_in = True
             st.session_state["user"] = u.strip().lower()
             st.session_state["must_change_password"] = bool(must_ch)
             st.rerun()
@@ -1616,7 +1617,10 @@ def render_force_password_change() -> None:
 
 _inject_layout_css()
 
-if not st.session_state.get("user"):
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
+
+if not st.session_state.logged_in:
     render_login_screen()
     st.stop()
 
@@ -1686,6 +1690,7 @@ with action_col:
         render_online_users()
     with _lo:
         if st.button("Çıkış", key="btn_logout", use_container_width=True):
+            st.session_state.logged_in = False
             st.session_state.pop("user", None)
             st.session_state.pop("must_change_password", None)
             st.rerun()

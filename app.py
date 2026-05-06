@@ -65,7 +65,7 @@ body, p, span, small, label,
 
 .block-container{
   max-width:100% !important;
-  padding:12px 14px 10px !important;
+  padding:8px 14px 8px !important;
 }
 
 .block-container > div:first-child{
@@ -74,7 +74,7 @@ body, p, span, small, label,
   border-radius:14px;
   backdrop-filter:blur(4px);
   -webkit-backdrop-filter:blur(4px);
-  padding:6px 10px;
+  padding:4px 10px;
 }
 
 section.main [data-testid="stForm"],
@@ -234,12 +234,12 @@ button[data-testid="stPopoverButton"]:hover{
 /* Sadece filtre + aksiyon toolbar sticky */
 .sticky-toolbar{
   position:sticky;
-  top:8px;
+  top:4px;
   z-index:40;
   background:rgba(248, 250, 252, 0.88);
   border:1px solid var(--border-soft);
   border-radius:12px;
-  padding:8px 10px 6px;
+  padding:6px 10px 4px;
   box-shadow:0 8px 20px rgba(15, 23, 42, 0.08);
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
@@ -267,8 +267,8 @@ button[data-testid="stPopoverButton"]:hover{
 }
 @media (max-width: 900px){
   .sticky-toolbar{
-    top:4px;
-    padding:6px 8px 4px;
+    top:2px;
+    padding:4px 8px 3px;
   }
 }
 
@@ -288,18 +288,18 @@ button[data-testid="stPopoverButton"]:hover{
 
 /* Kompakt premium header */
 .app-header{
-  margin-bottom:6px;
+  margin-bottom:2px;
 }
 .app-title{
   margin:0;
-  font-size:1.1rem;
+  font-size:1.02rem;
   font-weight:600;
   color:var(--text-main);
   line-height:1.25;
   text-align:center;
 }
 .brand-sub{
-  margin-top:2px;
+  margin-top:0;
   font-size:0.72rem;
   color:var(--text-secondary);
   font-weight:500;
@@ -333,7 +333,7 @@ button[data-testid="stPopoverButton"]:hover{
 }
 .toolbar-update-badge{
   text-align:right;
-  margin:0 2px 4px 0;
+  margin:0 2px 2px 0;
   font-size:0.74rem;
   color:var(--text-secondary);
   opacity:0.72;

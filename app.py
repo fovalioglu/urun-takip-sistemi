@@ -1905,26 +1905,6 @@ with action_col:
         f'margin:0 0 0.35rem 0;">son kayıt: {_hm}</div>',
         unsafe_allow_html=True,
     )
-    a1, a2 = st.columns(2, gap="small")
-    with a1:
-        if hasattr(st, "popover"):
-            with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
-                render_urun_kayit_form(df)
-        else:
-            if st.button("➕ Yeni Ürün", use_container_width=True, key="btn_open_form"):
-                st.session_state["_urun_form_expanded"] = True
-    with a2:
-        if hasattr(st, "popover"):
-            with st.popover(
-                "Siparişleri İçeri Aktar",
-                use_container_width=True,
-                width="stretch",
-            ):
-                render_trendyol_import_ui(df)
-        else:
-            with st.expander("Siparişleri İçeri Aktar", expanded=False):
-                render_trendyol_import_ui(df)
-
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
     with st.expander("Ürün kayıt formu", expanded=True):
         render_urun_kayit_form(df)
@@ -1935,32 +1915,28 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-flt_a, flt_u, flt_t, flt_f, flt_done = st.columns([1, 1, 1, 1, 1.05], gap="small")
-with flt_a:
-    atolye_filter = st.selectbox(
-        "Atölye",
-        ["Tümü"] + atolye_opts,
-        key="f_atolye",
+toolbar_cols = st.columns(
+    [1.0, 1.0, 1.0, 1.0, 1.15, 0.9, 0.95, 0.95, 1.1], gap="small"
+)
+with toolbar_cols[0]:
+    atolye_filter = st.selectbox("Atölye", ["Tümü"] + atolye_opts, key="f_atolye")
+with toolbar_cols[1]:
+    urun_filter = st.selectbox("Ürün Kodu", ["Tümü"] + urun_opts, key="f_urun")
+with toolbar_cols[2]:
+    termin_filter = st.selectbox("Termin Durumu", FILTER_TERMIN_OPTS, key="f_termin")
+with toolbar_cols[3]:
+    fason_filter = st.selectbox("Fason Durum", FILTER_FASON_OPTS, key="f_fason")
+with toolbar_cols[4]:
+    search_q = st.text_input(
+        "Genel Arama",
+        key="f_global_search",
+        placeholder="Kod, ürün, beden, PLM, renk...",
+        help=(
+            "Yazdığınız metin bu sütunlardan en az birinde geçen satırları gösterir "
+            "(büyük/küçük harf duyarsız, kısmi eşleşme)."
+        ),
     )
-with flt_u:
-    urun_filter = st.selectbox(
-        "Ürün Kodu",
-        ["Tümü"] + urun_opts,
-        key="f_urun",
-    )
-with flt_t:
-    termin_filter = st.selectbox(
-        "Termin Durumu",
-        FILTER_TERMIN_OPTS,
-        key="f_termin",
-    )
-with flt_f:
-    fason_filter = st.selectbox(
-        "Fason Durum",
-        FILTER_FASON_OPTS,
-        key="f_fason",
-    )
-with flt_done:
+with toolbar_cols[5]:
     show_completed = st.checkbox(
         "Tamamlananları Göster",
         value=False,
@@ -1984,15 +1960,6 @@ if termin_filter != "Hepsi":
 if fason_filter != "Hepsi":
     filtered_df = filtered_df.loc[mask_fason_filter(filtered_df, fason_filter)]
 
-search_q = st.text_input(
-    "Genel arama",
-    key="f_global_search",
-    placeholder="Ürün kodu, adı, beden, PLM, renk, atölye, fason…",
-    help=(
-        "Yazdığınız metin bu sütunlardan en az birinde geçen satırları gösterir "
-        "(büyük/küçük harf duyarsız, kısmi eşleşme). Her yeniden çalıştırmada uygulanır."
-    ),
-)
 filtered_df = filtered_df.loc[mask_global_text_search(filtered_df, search_q)]
 
 if (
@@ -2007,13 +1974,44 @@ view = sort_by_dab_asc(filtered_df)
 view = drop_unnamed_columns(view)
 view = view.reset_index(drop=True)
 editor_full = prepare_for_data_editor(view)
+editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
+view_for_excel = view.copy()
+excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
+
+with toolbar_cols[6]:
+    if hasattr(st, "popover"):
+        with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
+            render_urun_kayit_form(df)
+    else:
+        if st.button("➕ Yeni Ürün", use_container_width=True, key="btn_open_form"):
+            st.session_state["_urun_form_expanded"] = True
+with toolbar_cols[7]:
+    _xlsx = to_excel_bytes(excel_export_df)
+    if _xlsx is None:
+        st.caption("openpyxl yok")
+    else:
+        st.download_button(
+            label="📥 Excel İndir",
+            data=_xlsx,
+            file_name="urun_takip.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            key="dl_tablo_excel",
+            use_container_width=True,
+        )
+with toolbar_cols[8]:
+    if hasattr(st, "popover"):
+        with st.popover("Sipariş İçeri Aktar", use_container_width=True, width="stretch"):
+            render_trendyol_import_ui(df)
+    else:
+        with st.expander("Sipariş İçeri Aktar", expanded=False):
+            render_trendyol_import_ui(df)
 
 geciken, yaklasan = count_geciken_yaklasan(filtered_df)
-m1, m2, m3 = st.columns([1, 1, 1.35], gap="small")
+m1, m2, m3 = st.columns([1, 1, 2.0], gap="small")
 with m1:
-    st.metric("Geciken (D-A=T < 0)", geciken)
+    st.metric("Geciken", geciken)
 with m2:
-    st.metric("Yaklaşan (0–3 gün)", yaklasan)
+    st.metric("Yaklaşan", yaklasan)
 with m3:
     _cap = (
         f"**Genel filtre sonrası:** {len(view)} satır · **Toplam veri:** {len(df)} satır"
@@ -2027,10 +2025,6 @@ with m3:
         _cap += f" · **Tamamlanan (bu liste):** {_ndone}"
     st.caption(_cap)
 
-editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
-view_for_excel = view.copy()
-excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
-
 df_display = editor_df.copy()
 if len(df_display) > 100:
     df_display = df_display.iloc[:100]
@@ -2039,27 +2033,12 @@ _del_col = "🗑 Sil"
 if _is_admin and COL_URUN in df_display.columns:
     df_display[_del_col] = False
 
-_dl1, _dl2 = st.columns([2, 1], gap="small")
-with _dl1:
-    if len(editor_df) > 100:
-        st.caption(
-            f"**Gösterilen:** ilk 100 satır (filtre sonrası toplam {len(editor_df)} satır)"
-        )
-    else:
-        st.caption(f"**Gösterilen:** {len(df_display)} satır")
-with _dl2:
-    _xlsx = to_excel_bytes(excel_export_df)
-    if _xlsx is None:
-        st.caption("Excel için: `pip install openpyxl`")
-    else:
-        st.download_button(
-            label="📥 Excel indir",
-            data=_xlsx,
-            file_name="urun_takip.xlsx",
-            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            key="dl_tablo_excel",
-            use_container_width=True,
-        )
+if len(editor_df) > 100:
+    st.caption(
+        f"**Gösterilen:** ilk 100 satır (filtre sonrası toplam {len(editor_df)} satır)"
+    )
+else:
+    st.caption(f"**Gösterilen:** {len(df_display)} satır")
 
 if COL_URUN in df_display.columns:
     st.session_state["_editor_row_urun_keys"] = (

@@ -576,6 +576,7 @@ import time
 from io import BytesIO, StringIO
 from pathlib import Path
 import pandas as pd
+from st_aggrid import AgGrid, DataReturnMode, GridOptionsBuilder, GridUpdateMode
 
 from supabase import create_client
 
@@ -2362,34 +2363,44 @@ if COL_URUN in df_display.columns:
 else:
     st.session_state.pop("_editor_row_urun_keys", None)
 
-_colcfg: dict = {}
+gb = GridOptionsBuilder.from_dataframe(df_display)
+gb.configure_default_column(editable=True, sortable=True, resizable=True)
+gb.configure_grid_options(
+    domLayout="normal",
+    rowHeight=38,
+    headerHeight=38,
+    suppressDragLeaveHidesColumns=True,
+)
 if COL_TAMAMLANDI in df_display.columns:
-    _colcfg[COL_TAMAMLANDI] = st.column_config.CheckboxColumn(
+    gb.configure_column(
         COL_TAMAMLANDI,
-        help="İşaretleyince kayıt tamamlanır ve veritabanına kaydedilir; "
-        "ana listede varsayılan olarak gizlenir.",
-        default=False,
+        editable=True,
+        cellRenderer="agCheckboxCellRenderer",
+        cellEditor="agCheckboxCellEditor",
     )
-if COL_DSM in df_display.columns:
-    _colcfg[COL_DSM] = st.column_config.DateColumn(COL_DSM, format="YYYY-MM-DD")
-if COL_DAB in df_display.columns:
-    _colcfg[COL_DAB] = st.column_config.NumberColumn(COL_DAB, format="%d")
 if _is_admin and _del_col in df_display.columns:
-    _colcfg[_del_col] = st.column_config.CheckboxColumn(
+    gb.configure_column(
         _del_col,
-        help="Satırı silmek için işaretleyin.",
-        default=False,
+        editable=True,
+        cellRenderer="agCheckboxCellRenderer",
+        cellEditor="agCheckboxCellEditor",
+        headerTooltip="Satırı silmek için işaretleyin.",
     )
-_de_kwargs: dict = {
-    "height": 700,
-    "use_container_width": True,
-    "hide_index": True,
-    "num_rows": "fixed",
-    "key": "main_table",
-}
-if _colcfg:
-    _de_kwargs["column_config"] = _colcfg
-_edited_raw = st.data_editor(df_display, **_de_kwargs)
+if COL_DAB in df_display.columns:
+    gb.configure_column(COL_DAB, type=["numericColumn"])
+
+grid_response = AgGrid(
+    df_display,
+    gridOptions=gb.build(),
+    height=700,
+    fit_columns_on_grid_load=True,
+    allow_unsafe_jscode=True,
+    theme="balham",
+    update_mode=GridUpdateMode.VALUE_CHANGED | GridUpdateMode.MODEL_CHANGED,
+    data_return_mode=DataReturnMode.AS_INPUT,
+    key="main_table_aggrid",
+)
+_edited_raw = pd.DataFrame(grid_response.get("data", df_display))
 
 _del_ok = st.session_state.pop("_delete_ok_msg", None)
 if _del_ok:
@@ -2399,7 +2410,7 @@ if _del_err:
     st.error(_del_err)
 if _is_admin and _del_col in _edited_raw.columns and COL_URUN in _edited_raw.columns:
     _to_delete_codes = (
-        _edited_raw.loc[_edited_raw[_del_col].fillna(False).astype(bool), COL_URUN]
+        _edited_raw.loc[_edited_raw[_del_col].map(_coerce_bool_loose), COL_URUN]
         .astype(str)
         .str.strip()
         .tolist()

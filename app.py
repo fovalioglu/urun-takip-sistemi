@@ -2023,7 +2023,7 @@ with hdr_c:
     st.markdown('<div class="app-title">Termin ve atölye takibi</div>', unsafe_allow_html=True)
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _acct, _lo, _tg = st.columns([1.7, 0.7, 1.0], gap="small")
+    _acct, _tg, _lo = st.columns([1.7, 1.0, 0.7], gap="small")
     _online_users = get_online_users()
     _is_online = str(st.session_state.get("user", "")).strip() in {
         str(x).strip() for x in _online_users
@@ -2035,14 +2035,6 @@ with hdr_r:
             f'<span class="dot"></span> {_status_txt}</div>',
             unsafe_allow_html=True,
         )
-    with _lo:
-        st.markdown('<div class="header-logout">', unsafe_allow_html=True)
-        if st.button("Çıkış", key="btn_logout", use_container_width=True):
-            st.session_state.logged_in = False
-            st.session_state.pop("user", None)
-            st.session_state.pop("must_change_password", None)
-            st.rerun()
-        st.markdown("</div>", unsafe_allow_html=True)
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
     with _tg:
@@ -2053,6 +2045,14 @@ with hdr_r:
             key="f_show_completed",
             help="Tamamlanan kayıtları da listede göster.",
         )
+        st.markdown("</div>", unsafe_allow_html=True)
+    with _lo:
+        st.markdown('<div class="header-logout">', unsafe_allow_html=True)
+        if st.button("Çıkış", key="btn_logout", use_container_width=True):
+            st.session_state.logged_in = False
+            st.session_state.pop("user", None)
+            st.session_state.pop("must_change_password", None)
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):

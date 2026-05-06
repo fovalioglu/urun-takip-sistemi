@@ -25,23 +25,23 @@ st.markdown(
     """
 <style>
 :root{
-  --bg-main:#F6EDE7;
-  --bg-card:#FFF8F3;
-  --bg-table-header:#D8B7A6;
-  --bg-table-row:#F9F3EF;
-  --bg-table-row-alt:#FFF8F3;
-  --bg-table-hover:#EACFC2;
-  --text-main:#2F2926;
-  --text-secondary:#4A403B;
-  --accent:#5C4033;
-  --accent-hover:#7A5645;
-  --border-soft:#E6CEC1;
-  --shadow-soft:0 8px 24px rgba(92,64,51,0.10);
-  --shadow-card:0 4px 14px rgba(92,64,51,0.08);
+  --bg-main:#F8FAFC;
+  --bg-card:#FFFFFF;
+  --bg-table-header:#EAF2FF;
+  --bg-table-row:#F9FBFF;
+  --bg-table-row-alt:#FFFFFF;
+  --bg-table-hover:#F2F7FF;
+  --text-main:#1F2937;
+  --text-secondary:#6B7280;
+  --accent:#4F8CFF;
+  --accent-hover:#3B7AF5;
+  --border-soft:#DCE6F2;
+  --shadow-soft:0 6px 16px rgba(79,140,255,0.14);
+  --shadow-card:0 2px 10px rgba(30,41,59,0.06);
 }
 
 [data-testid="stAppViewContainer"]{
-  background:linear-gradient(135deg, #F6EDE7 0%, #F8EFE9 52%, #F4E6DE 100%);
+  background:linear-gradient(180deg, #F8FAFC 0%, #F5F8FD 100%);
   color:var(--text-main);
 }
 
@@ -65,16 +65,16 @@ body, p, span, small, label,
 
 .block-container{
   max-width:100% !important;
-  padding:20px 14px 16px !important;
+  padding:12px 14px 10px !important;
 }
 
 .block-container > div:first-child{
-  background:rgba(255, 248, 243, 0.62);
-  border:1px solid rgba(230, 206, 193, 0.8);
-  border-radius:18px;
-  backdrop-filter:blur(6px);
-  -webkit-backdrop-filter:blur(6px);
-  padding:8px 12px;
+  background:rgba(255, 255, 255, 0.72);
+  border:1px solid rgba(220, 230, 242, 0.9);
+  border-radius:14px;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+  padding:6px 10px;
 }
 
 section.main [data-testid="stForm"],
@@ -107,8 +107,10 @@ div[data-baseweb="select"] > div{
   color:var(--text-main) !important;
   -webkit-text-fill-color:var(--text-main) !important;
   border:1px solid var(--border-soft) !important;
-  border-radius:12px !important;
-  box-shadow:0 1px 0 rgba(92,64,51,0.03), 0 6px 16px rgba(92,64,51,0.05) !important;
+  border-radius:10px !important;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04) !important;
+  min-height:42px !important;
+  height:42px !important;
 }
 input::placeholder, textarea::placeholder,
 div[data-baseweb="select"] input::placeholder{
@@ -134,18 +136,19 @@ div[data-baseweb="select"] svg{
 [data-testid="stSelectbox"] > div:focus-within,
 [data-testid="stTextInput"] > div:focus-within{
   transform:translateY(-1px);
-  box-shadow:0 0 0 2px rgba(122,86,69,0.20), 0 8px 18px rgba(92,64,51,0.10) !important;
+  box-shadow:0 0 0 3px rgba(79,140,255,0.18), 0 6px 14px rgba(79,140,255,0.15) !important;
 }
 
 .stButton button,
 button[kind="primary"],
 div[data-testid="stDownloadButton"] button,
-div[data-testid="baseButton-primary"]{
-  background:linear-gradient(180deg, #6B4A3B 0%, var(--accent) 100%) !important;
+div[data-testid="baseButton-primary"],
+button[data-testid="stPopoverButton"]{
+  background:var(--accent) !important;
   color:#FFFFFF !important;
   -webkit-text-fill-color:#FFFFFF !important;
-  border:1px solid #50372D !important;
-  border-radius:12px !important;
+  border:1px solid #3E7BEA !important;
+  border-radius:10px !important;
   box-shadow:var(--shadow-soft) !important;
   font-weight:600 !important;
   letter-spacing:0.1px;
@@ -158,9 +161,11 @@ div[data-testid="baseButton-primary"]{
 .stButton button:hover,
 button[kind="primary"]:hover,
 div[data-testid="stDownloadButton"] button:hover,
-div[data-testid="baseButton-primary"]:hover{
-  background:linear-gradient(180deg, #896251 0%, var(--accent-hover) 100%) !important;
+div[data-testid="baseButton-primary"]:hover,
+button[data-testid="stPopoverButton"]:hover{
+  background:var(--accent-hover) !important;
   color:#FFFFFF !important;
+  box-shadow:0 8px 16px rgba(59,122,245,0.22) !important;
 }
 .stButton button svg, div[data-testid="stDownloadButton"] button svg{
   color:#FFFFFF !important;
@@ -181,7 +186,7 @@ div[data-testid="baseButton-primary"]:hover{
   align-items:center !important;
   padding:0 10px !important;
   border:1px solid var(--border-soft) !important;
-  border-radius:12px !important;
+  border-radius:999px !important;
   background:var(--bg-card) !important;
 }
 
@@ -196,8 +201,8 @@ div[data-testid="baseButton-primary"]:hover{
 [data-testid="stDataFrame"] thead tr th,
 [data-testid="stDataEditor"] [role="columnheader"]{
   background:var(--bg-table-header) !important;
-  color:#3A2F2A !important;
-  border-bottom:1px solid #C99F8A !important;
+  color:var(--text-main) !important;
+  border-bottom:1px solid var(--border-soft) !important;
   font-weight:700 !important;
 }
 [data-testid="stDataFrame"] tbody tr:nth-child(odd),
@@ -218,12 +223,46 @@ div[data-testid="baseButton-primary"]:hover{
   min-height:42px !important;
   padding-top:10px !important;
   padding-bottom:10px !important;
-  border-bottom:1px solid #EEDAD1 !important;
+  border-bottom:1px solid #EEF3FA !important;
 }
 
 [data-testid="column"]{
   padding-left:8px;
   padding-right:8px;
+}
+
+/* Sadece filtre + aksiyon toolbar sticky */
+.sticky-toolbar{
+  position:sticky;
+  top:8px;
+  z-index:40;
+  background:rgba(248, 250, 252, 0.88);
+  border:1px solid var(--border-soft);
+  border-radius:12px;
+  padding:8px 10px 6px;
+  box-shadow:0 8px 20px rgba(15, 23, 42, 0.08);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+}
+@media (max-width: 900px){
+  .sticky-toolbar{
+    top:4px;
+    padding:6px 8px 4px;
+  }
+}
+
+/* Toolbar hizasını tek baseline'da tut */
+[data-testid="stTextInput"],
+[data-testid="stSelectbox"],
+[data-testid="stCheckbox"],
+[data-testid="stButton"],
+[data-testid="stDownloadButton"],
+[data-testid="stPopover"]{
+  margin-bottom:0 !important;
+}
+[data-testid="stTextInput"] label,
+[data-testid="stSelectbox"] label{
+  margin-bottom:4px !important;
 }
 
 ::-webkit-scrollbar{height:9px;}
@@ -1941,6 +1980,7 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
+st.markdown('<div class="sticky-toolbar">', unsafe_allow_html=True)
 toolbar_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.2, 0.9, 1.0], gap="small")
 with toolbar_cols[0]:
     atolye_filter = st.selectbox("Atölye", ["Tümü"] + atolye_opts, key="f_atolye")
@@ -2014,6 +2054,7 @@ with toolbar_cols[6]:
             key="dl_tablo_excel",
             use_container_width=True,
         )
+st.markdown("</div>", unsafe_allow_html=True)
 
 _cap = f"Genel filtre sonrası: {len(view)} satır · Toplam veri: {len(df)} satır"
 if show_completed and COL_TAMAMLANDI in filtered_df.columns and not filtered_df.empty:

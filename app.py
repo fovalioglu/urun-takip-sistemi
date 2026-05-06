@@ -151,6 +151,38 @@ background:#111827;
 color:white;
 }
 
+/* Global dark/primary button text contrast fix */
+.stButton button,
+button[kind="primary"],
+div[data-testid="stDownloadButton"] button,
+div[data-testid="baseButton-primary"]{
+color:#ffffff !important;
+-webkit-text-fill-color:#ffffff !important;
+opacity:1 !important;
+font-weight:600 !important;
+}
+
+/* Buton içi ikonlar da beyaz */
+.stButton button svg,
+button[kind="primary"] svg,
+div[data-testid="stDownloadButton"] button svg,
+div[data-testid="baseButton-primary"] svg{
+color:#ffffff !important;
+fill:#ffffff !important;
+stroke:#ffffff !important;
+opacity:1 !important;
+}
+
+/* Hover'da text kaybolmasın */
+.stButton button:hover,
+button[kind="primary"]:hover,
+div[data-testid="stDownloadButton"] button:hover,
+div[data-testid="baseButton-primary"]:hover{
+color:#ffffff !important;
+-webkit-text-fill-color:#ffffff !important;
+opacity:1 !important;
+}
+
 /* filtre alanları */
 [data-baseweb="select"]{
 background:white;

@@ -286,6 +286,61 @@ button[data-testid="stPopoverButton"]:hover{
   margin-bottom:4px !important;
 }
 
+/* Kompakt premium header */
+.app-header{
+  margin-bottom:6px;
+}
+.app-title{
+  margin:0;
+  font-size:1.1rem;
+  font-weight:600;
+  color:var(--text-main);
+  line-height:1.25;
+  text-align:center;
+}
+.brand-sub{
+  margin-top:2px;
+  font-size:0.72rem;
+  color:var(--text-secondary);
+  font-weight:500;
+}
+.header-meta{
+  margin:0;
+  font-size:0.82rem;
+  color:var(--text-secondary);
+  font-weight:500;
+  text-align:right;
+}
+.header-chip [data-testid="stPopover"] button{
+  min-height:34px !important;
+  height:34px !important;
+  border-radius:999px !important;
+  padding:0 10px !important;
+  font-size:0.78rem !important;
+  background:#EAF2FF !important;
+  color:#1F2937 !important;
+  -webkit-text-fill-color:#1F2937 !important;
+  border:1px solid #DCE6F2 !important;
+  box-shadow:none !important;
+}
+.header-logout .stButton button{
+  min-height:34px !important;
+  height:34px !important;
+  border-radius:10px !important;
+  padding:0 10px !important;
+  font-size:0.8rem !important;
+}
+.header-toggle [data-testid="stCheckbox"] label{
+  min-height:34px !important;
+  height:34px !important;
+  border-radius:999px !important;
+  padding:0 9px !important;
+  background:#F3F7FF !important;
+}
+.header-toggle [data-testid="stCheckbox"] label p{
+  font-size:0.76rem !important;
+}
+
 ::-webkit-scrollbar{height:9px;}
 
 </style>
@@ -1924,73 +1979,58 @@ if COL_ATOLYE not in df.columns or COL_URUN not in df.columns:
 
 ensure_last_save_bootstrap()
 
-title_col, action_col = st.columns([4, 2], gap="small")
-with title_col:
+st.markdown('<div class="app-header">', unsafe_allow_html=True)
+hdr_l, hdr_c, hdr_r = st.columns([1.2, 1.6, 1.7], gap="small")
+with hdr_l:
     st.markdown(
         """
-<div style="
-display:flex;
-align-items:center;
-gap:12px;
-margin-bottom:5px;
-">
-
-<img src="https://raw.githubusercontent.com/fovalioglu/urun-takip-sistemi/main/logo.png"
-style="
-height:42px;
-object-fit:contain;
-">
-
+<div style="display:flex;flex-direction:column;align-items:flex-start;justify-content:center;">
+<img src="https://raw.githubusercontent.com/fovalioglu/urun-takip-sistemi/main/logo.png" style="height:38px;object-fit:contain;">
+<div class="brand-sub">by Ovalıoğlu</div>
 </div>
 """,
         unsafe_allow_html=True,
     )
-    st.caption("Termin ve atölye takibi")
-    st.markdown(
-        """
-<style>
-
-h1{
-display:none;
-}
-
-</style>
-""",
-        unsafe_allow_html=True,
-    )
-with action_col:
+with hdr_c:
+    st.markdown('<div class="app-title">Termin ve atölye takibi</div>', unsafe_allow_html=True)
+with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _ur, _on, _lo = st.columns([1.35, 1.05, 0.72], gap="small")
+    _ur, _on, _lo, _tg = st.columns([1.05, 0.95, 0.7, 1.0], gap="small")
     with _ur:
         st.markdown(
-            f'<div style="text-align:right;font-size:0.9rem;color:#111827;font-weight:500;'
-            f'margin:0 0 0.35rem 0;line-height:2rem;">{_u}</div>',
+            f'<div class="header-meta">{_u}</div>',
             unsafe_allow_html=True,
         )
     with _on:
+        st.markdown('<div class="header-chip">', unsafe_allow_html=True)
         render_online_users()
+        st.markdown("</div>", unsafe_allow_html=True)
     with _lo:
+        st.markdown('<div class="header-logout">', unsafe_allow_html=True)
         if st.button("Çıkış", key="btn_logout", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.pop("user", None)
             st.session_state.pop("must_change_password", None)
             st.rerun()
+        st.markdown("</div>", unsafe_allow_html=True)
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
-    _meta_l, _meta_r = st.columns([1.5, 1], gap="small")
+    _meta_l, _meta_r = st.columns([1.4, 1], gap="small")
     with _meta_l:
         st.markdown(
-            f'<div style="text-align:right;font-size:0.72rem;color:#6b5f59;font-weight:500;'
-            f'margin:0;">son kayıt: {_hm}</div>',
+            f'<div class="header-meta">son kayıt: {_hm}</div>',
             unsafe_allow_html=True,
         )
-    with _meta_r:
+    with _tg:
+        st.markdown('<div class="header-toggle">', unsafe_allow_html=True)
         show_completed = st.checkbox(
             "Tamamlanan",
             value=False,
             key="f_show_completed",
             help="Tamamlanan kayıtları da listede göster.",
         )
+        st.markdown("</div>", unsafe_allow_html=True)
+st.markdown("</div>", unsafe_allow_html=True)
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
     with st.expander("Ürün kayıt formu", expanded=True):
         render_urun_kayit_form(df)

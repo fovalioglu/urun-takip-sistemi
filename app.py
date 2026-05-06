@@ -934,14 +934,18 @@ def normalize_dataframe_for_streamlit_editor(df: pd.DataFrame) -> pd.DataFrame:
         if col == COL_DAB:
             out[col] = pd.to_numeric(out[col], errors="coerce").astype("Int64")
             continue
-        cname = str(col)
-        if ("Termin" in cname) or ("Tarih" in cname):
-            dts = pd.to_datetime(out[col], errors="coerce")
-            out[col] = dts.dt.strftime("%Y-%m-%d").where(dts.notna(), "")
+        if col in (COL_DSM, COL_ATOLYE_TERM):
+            # Tarih sütunlarını string'e çevirmeyip datetime olarak tut ki
+            # data_editor'da gerçek tarih sıralaması çalışsın.
+            out[col] = pd.to_datetime(out[col], errors="coerce").dt.normalize()
             continue
+        cname = str(col)
         if col == COL_CREATED:
             dts = pd.to_datetime(out[col], errors="coerce")
             out[col] = dts.dt.strftime("%Y-%m-%d %H:%M").where(dts.notna(), "")
+            continue
+        if ("Termin" in cname) or ("Tarih" in cname):
+            out[col] = pd.to_datetime(out[col], errors="coerce").dt.normalize()
             continue
         if ("Adet" in cname) or (col == COL_SB_ID):
             out[col] = pd.to_numeric(out[col], errors="coerce")
@@ -1266,9 +1270,20 @@ def prepare_for_display(df: pd.DataFrame) -> pd.DataFrame:
 
 
 def sort_by_dab_asc(df: pd.DataFrame) -> pd.DataFrame:
-    if COL_DAB not in df.columns:
-        return df
-    return df.sort_values(COL_DAB, ascending=True, na_position="last")
+    out = df.copy()
+    sort_cols: list[str] = []
+    ascending: list[bool] = []
+    if COL_DSM in out.columns:
+        out[COL_DSM] = pd.to_datetime(out[COL_DSM], errors="coerce")
+        sort_cols.append(COL_DSM)
+        ascending.append(True)
+    if COL_DAB in out.columns:
+        out[COL_DAB] = pd.to_numeric(out[COL_DAB], errors="coerce")
+        sort_cols.append(COL_DAB)
+        ascending.append(True)
+    if not sort_cols:
+        return out
+    return out.sort_values(sort_cols, ascending=ascending, na_position="last")
 
 
 def count_geciken_yaklasan(df: pd.DataFrame) -> tuple[int, int]:
@@ -1916,23 +1931,27 @@ if COL_URUN in df_display.columns:
 else:
     st.session_state.pop("_editor_row_urun_keys", None)
 
-_tamamlandi_colcfg: dict = {}
+_colcfg: dict = {}
 if COL_TAMAMLANDI in df_display.columns:
-    _tamamlandi_colcfg[COL_TAMAMLANDI] = st.column_config.CheckboxColumn(
+    _colcfg[COL_TAMAMLANDI] = st.column_config.CheckboxColumn(
         COL_TAMAMLANDI,
         help="İşaretleyince kayıt tamamlanır ve veritabanına kaydedilir; "
         "ana listede varsayılan olarak gizlenir.",
         default=False,
     )
+if COL_DSM in df_display.columns:
+    _colcfg[COL_DSM] = st.column_config.DateColumn(COL_DSM, format="YYYY-MM-DD")
+if COL_DAB in df_display.columns:
+    _colcfg[COL_DAB] = st.column_config.NumberColumn(COL_DAB, format="%d")
 _de_kwargs: dict = {
     "height": 700,
     "use_container_width": True,
     "hide_index": True,
-    "num_rows": "dynamic",
+    "num_rows": "fixed",
     "key": "main_table",
 }
-if _tamamlandi_colcfg:
-    _de_kwargs["column_config"] = _tamamlandi_colcfg
+if _colcfg:
+    _de_kwargs["column_config"] = _colcfg
 _edited_raw = st.data_editor(df_display, **_de_kwargs)
 
 if show_completed and COL_TAMAMLANDI in editor_df.columns:

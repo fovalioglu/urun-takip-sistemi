@@ -370,6 +370,41 @@ button[data-testid="stPopoverButton"]:hover{
   background:#F2F7FF !important;
 }
 
+/* DataEditor checkbox: her zaman görünür, hover bağımsız */
+[data-testid="stDataEditor"] input[type="checkbox"]{
+  -webkit-appearance:none !important;
+  appearance:none !important;
+  width:16px !important;
+  height:16px !important;
+  min-width:16px !important;
+  min-height:16px !important;
+  margin:0 !important;
+  border-radius:4px !important;
+  border:1.5px solid #94A3B8 !important;
+  background:#FFFFFF !important;
+  opacity:1 !important;
+  visibility:visible !important;
+  box-shadow:none !important;
+  cursor:pointer !important;
+  display:inline-block !important;
+  vertical-align:middle !important;
+}
+[data-testid="stDataEditor"] input[type="checkbox"]:checked{
+  background:#4F8CFF !important;
+  border-color:#4F8CFF !important;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 14'%3E%3Cpath d='M3 7.5l2.4 2.4L11 4.3' fill='none' stroke='%23FFFFFF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") !important;
+  background-repeat:no-repeat !important;
+  background-position:center !important;
+  background-size:11px 11px !important;
+}
+[data-testid="stDataEditor"] input[type="checkbox"]:hover{
+  box-shadow:0 0 0 2px rgba(79,140,255,0.14) !important;
+}
+[data-testid="stDataEditor"] input[type="checkbox"]:focus-visible{
+  outline:2px solid rgba(79,140,255,0.35) !important;
+  outline-offset:1px !important;
+}
+
 [data-testid="column"]{
   padding-left:8px;
   padding-right:8px;

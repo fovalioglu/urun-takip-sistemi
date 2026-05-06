@@ -2136,6 +2136,10 @@ excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 df_display = editor_df.copy()
 if len(df_display) > 100:
     df_display = df_display.iloc[:100]
+_is_admin = tablo_oturum_kullanicisi().casefold() == "admin"
+_del_col = "🗑 Sil"
+if _is_admin and COL_URUN in df_display.columns:
+    df_display[_del_col] = False
 
 _dl1, _dl2 = st.columns([2, 1], gap="small")
 with _dl1:
@@ -2178,6 +2182,12 @@ if COL_DSM in df_display.columns:
     _colcfg[COL_DSM] = st.column_config.DateColumn(COL_DSM, format="YYYY-MM-DD")
 if COL_DAB in df_display.columns:
     _colcfg[COL_DAB] = st.column_config.NumberColumn(COL_DAB, format="%d")
+if _is_admin and _del_col in df_display.columns:
+    _colcfg[_del_col] = st.column_config.CheckboxColumn(
+        _del_col,
+        help="Satırı silmek için işaretleyin.",
+        default=False,
+    )
 _de_kwargs: dict = {
     "height": 700,
     "use_container_width": True,
@@ -2195,40 +2205,38 @@ if _del_ok:
 _del_err = st.session_state.pop("_delete_err_msg", None)
 if _del_err:
     st.error(_del_err)
-
-_is_admin = tablo_oturum_kullanicisi().casefold() == "admin"
-if _is_admin and COL_URUN in df_display.columns and not df_display.empty:
-    st.caption("Satır silme (admin): her satırın sonundaki butonla silebilirsiniz.")
-    for i, r in df_display.iterrows():
-        _code = str(r.get(COL_URUN, "")).strip()
-        if not _code:
-            continue
-        _name = str(r.get(COL_URUN_ADI, "")).strip()
-        _l, _r = st.columns([6, 1], gap="small")
-        with _l:
-            if _name:
-                st.markdown(f"`{_code}` · {_name}")
-            else:
-                st.markdown(f"`{_code}`")
-        with _r:
-            if st.button("🗑 Sil", key=f"btn_del_{i}_{_code}"):
-                st.session_state["_delete_confirm_code"] = _code
-    _pending_code = str(st.session_state.get("_delete_confirm_code", "")).strip()
-    if _pending_code:
-        st.warning(f"Bu kayıt silinsin mi? (`{_pending_code}`)")
+if _is_admin and _del_col in _edited_raw.columns and COL_URUN in _edited_raw.columns:
+    _to_delete_codes = (
+        _edited_raw.loc[_edited_raw[_del_col].fillna(False).astype(bool), COL_URUN]
+        .astype(str)
+        .str.strip()
+        .tolist()
+    )
+    _to_delete_codes = [c for c in _to_delete_codes if c]
+    if _to_delete_codes:
+        st.session_state["_delete_confirm_codes"] = _to_delete_codes
+    _pending_codes = st.session_state.get("_delete_confirm_codes", [])
+    if isinstance(_pending_codes, list) and _pending_codes:
+        _uniq_codes = list(dict.fromkeys(str(x).strip() for x in _pending_codes if str(x).strip()))
+        st.warning(f"Bu kayıt(lar) silinsin mi? ({', '.join(_uniq_codes)})")
         _c1, _c2 = st.columns([1, 1], gap="small")
         with _c1:
             if st.button("Evet, sil", type="primary", key="btn_del_confirm"):
-                _ok, _msg = delete_urun_by_code(_pending_code)
-                st.session_state.pop("_delete_confirm_code", None)
-                if _ok:
-                    st.session_state["_delete_ok_msg"] = _msg
+                _all_ok = True
+                _msgs: list[str] = []
+                for _code in _uniq_codes:
+                    _ok, _msg = delete_urun_by_code(_code)
+                    _all_ok = _all_ok and _ok
+                    _msgs.append(_msg)
+                st.session_state.pop("_delete_confirm_codes", None)
+                if _all_ok:
+                    st.session_state["_delete_ok_msg"] = " | ".join(_msgs)
                 else:
-                    st.session_state["_delete_err_msg"] = _msg
+                    st.session_state["_delete_err_msg"] = " | ".join(_msgs)
                 st.rerun()
         with _c2:
             if st.button("Vazgeç", key="btn_del_cancel"):
-                st.session_state.pop("_delete_confirm_code", None)
+                st.session_state.pop("_delete_confirm_codes", None)
                 st.rerun()
 
 if show_completed and COL_TAMAMLANDI in editor_df.columns:
@@ -2250,9 +2258,10 @@ if show_completed and COL_TAMAMLANDI in editor_df.columns:
                 height=min(400, 48 + 32 * min(len(_show_g), 14)),
             )
             st.caption("Düzenleme üstteki ana tablodan yapılır.")
-_edited_aligned = _edited_raw.reindex(columns=list(df_display.columns))
+_persist_cols = [c for c in df_display.columns if c != _del_col]
+_edited_aligned = _edited_raw.reindex(columns=_persist_cols)
 edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
-_base = df_display.reset_index(drop=True)
+_base = df_display.reindex(columns=_persist_cols).reset_index(drop=True)
 _edited_norm = edited_df.reset_index(drop=True)
 try:
     _tablo_degisti = not _edited_norm.equals(_base)

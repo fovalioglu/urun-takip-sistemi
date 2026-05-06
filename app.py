@@ -108,21 +108,72 @@ section.main [data-testid="stForm"]{
   height:auto;
 }
 section.main [data-testid="stForm"] [data-testid="stTextInput"]{
-  margin-bottom:4px !important;
+  margin-bottom:8px !important;
 }
 section.main [data-testid="stForm"] label{
-  font-size:0.82rem !important;
-  margin-bottom:3px !important;
+  font-size:0.78rem !important;
+  color:#6B7280 !important;
+  font-weight:500 !important;
+  margin-bottom:4px !important;
+  letter-spacing:0.01em;
+}
+section.main [data-testid="stForm"] div[data-baseweb="input"]{
+  min-height:40px !important;
+  height:40px !important;
+  border-radius:11px !important;
+  border:1px solid #DDE6F3 !important;
+  box-shadow:inset 0 1px 1px rgba(15,23,42,0.02), 0 1px 2px rgba(15,23,42,0.03) !important;
+  background:#FFFFFF !important;
 }
 section.main [data-testid="stForm"] input{
-  min-height:38px !important;
-  height:38px !important;
-  border-radius:10px !important;
+  min-height:40px !important;
+  height:40px !important;
+  border-radius:11px !important;
+  font-size:0.9rem !important;
+  color:#1F2937 !important;
+  -webkit-text-fill-color:#1F2937 !important;
+  padding-left:11px !important;
+  padding-right:11px !important;
+}
+section.main [data-testid="stForm"] input::placeholder{
+  color:#9AA4B2 !important;
+  -webkit-text-fill-color:#9AA4B2 !important;
+}
+section.main [data-testid="stForm"] [data-baseweb="input"]:focus-within{
+  border-color:#4F8CFF !important;
+  box-shadow:0 0 0 3px rgba(79,140,255,0.16), inset 0 1px 1px rgba(15,23,42,0.02) !important;
+}
+/* Password eye icon: inputla bütünleşik ve dengeli */
+section.main [data-testid="stForm"] [data-baseweb="input"] button{
+  border:none !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  min-height:28px !important;
+  width:28px !important;
+  padding:0 !important;
+  margin-right:4px !important;
+}
+section.main [data-testid="stForm"] [data-baseweb="input"] button svg{
+  color:#94A3B8 !important;
+  fill:#94A3B8 !important;
+  width:16px !important;
+  height:16px !important;
 }
 section.main [data-testid="stForm"] .stButton button{
-  min-height:38px !important;
-  height:38px !important;
-  border-radius:10px !important;
+  min-height:40px !important;
+  height:40px !important;
+  border-radius:11px !important;
+  background:linear-gradient(180deg, #5D97FF 0%, #4F8CFF 100%) !important;
+  border:1px solid #3F7EEB !important;
+  box-shadow:0 4px 10px rgba(79,140,255,0.20) !important;
+  font-size:0.88rem !important;
+  font-weight:600 !important;
+  transition:all .18s ease !important;
+}
+section.main [data-testid="stForm"] .stButton button:hover{
+  background:linear-gradient(180deg, #4F8CFF 0%, #3B7AF5 100%) !important;
+  box-shadow:0 6px 14px rgba(59,122,245,0.24) !important;
+  transform:translateY(-1px);
 }
 
 [data-testid="stMetricContainer"]{

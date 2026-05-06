@@ -337,6 +337,7 @@ button[data-testid="stPopoverButton"]:hover{
   color:var(--text-main);
   font-size:0.78rem;
   font-weight:600;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04);
 }
 .account-chip .dot{
   width:8px;
@@ -360,19 +361,38 @@ button[data-testid="stPopoverButton"]:hover{
 .header-logout .stButton button{
   min-height:34px !important;
   height:34px !important;
-  border-radius:10px !important;
-  padding:0 10px !important;
+  border-radius:999px !important;
+  padding:0 11px !important;
   font-size:0.8rem !important;
+  font-weight:600 !important;
+  background:#F7FAFF !important;
+  color:var(--text-main) !important;
+  -webkit-text-fill-color:var(--text-main) !important;
+  border:1px solid var(--border-soft) !important;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04) !important;
+}
+.header-logout .stButton button:hover{
+  background:#EEF4FF !important;
+  color:var(--text-main) !important;
+  -webkit-text-fill-color:var(--text-main) !important;
+  box-shadow:0 2px 6px rgba(15,23,42,0.06) !important;
 }
 .header-toggle [data-testid="stCheckbox"] label{
   min-height:34px !important;
   height:34px !important;
   border-radius:999px !important;
-  padding:0 9px !important;
-  background:#F3F7FF !important;
+  padding:0 11px !important;
+  background:#F7FAFF !important;
+  border:1px solid var(--border-soft) !important;
+  box-shadow:0 1px 2px rgba(15,23,42,0.04) !important;
 }
 .header-toggle [data-testid="stCheckbox"] label p{
-  font-size:0.76rem !important;
+  font-size:0.78rem !important;
+  font-weight:600 !important;
+  color:var(--text-main) !important;
+}
+.header-toggle [data-testid="stCheckbox"] input{
+  transform:scale(0.9);
 }
 
 ::-webkit-scrollbar{height:9px;}
@@ -2035,7 +2055,7 @@ with hdr_c:
     )
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _acct, _tg, _lo = st.columns([1.7, 1.0, 0.7], gap="small")
+    _acct, _tg, _lo = st.columns([1.6, 0.95, 0.95], gap="small")
     _online_users = get_online_users()
     _is_online = str(st.session_state.get("user", "")).strip() in {
         str(x).strip() for x in _online_users

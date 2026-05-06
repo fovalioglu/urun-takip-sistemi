@@ -358,12 +358,13 @@ button[data-testid="stPopoverButton"]:hover{
   border:1px solid #DCE6F2 !important;
   box-shadow:none !important;
 }
-.header-logout .stButton button{
+.header-logout .stButton button,
+.header-toggle .stButton button{
   min-height:34px !important;
   height:34px !important;
   border-radius:999px !important;
   padding:0 11px !important;
-  font-size:0.8rem !important;
+  font-size:0.78rem !important;
   font-weight:600 !important;
   background:#F7FAFF !important;
   color:var(--text-main) !important;
@@ -371,28 +372,16 @@ button[data-testid="stPopoverButton"]:hover{
   border:1px solid var(--border-soft) !important;
   box-shadow:0 1px 2px rgba(15,23,42,0.04) !important;
 }
-.header-logout .stButton button:hover{
+.header-logout .stButton button:hover,
+.header-toggle .stButton button:hover{
   background:#EEF4FF !important;
   color:var(--text-main) !important;
   -webkit-text-fill-color:var(--text-main) !important;
   box-shadow:0 2px 6px rgba(15,23,42,0.06) !important;
 }
-.header-toggle [data-testid="stCheckbox"] label{
-  min-height:34px !important;
-  height:34px !important;
-  border-radius:999px !important;
-  padding:0 11px !important;
-  background:#F7FAFF !important;
-  border:1px solid var(--border-soft) !important;
-  box-shadow:0 1px 2px rgba(15,23,42,0.04) !important;
-}
-.header-toggle [data-testid="stCheckbox"] label p{
-  font-size:0.78rem !important;
-  font-weight:600 !important;
-  color:var(--text-main) !important;
-}
-.header-toggle [data-testid="stCheckbox"] input{
-  transform:scale(0.9);
+.header-toggle-active .stButton button{
+  background:#EAF2FF !important;
+  border-color:#BCD3FA !important;
 }
 
 ::-webkit-scrollbar{height:9px;}
@@ -2056,6 +2045,8 @@ with hdr_c:
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
     _acct, _tg, _lo = st.columns([1.6, 0.95, 0.95], gap="small")
+    if "f_show_completed" not in st.session_state:
+        st.session_state["f_show_completed"] = False
     _online_users = get_online_users()
     _is_online = str(st.session_state.get("user", "")).strip() in {
         str(x).strip() for x in _online_users
@@ -2068,23 +2059,27 @@ with hdr_r:
             unsafe_allow_html=True,
         )
     with _tg:
-        st.markdown('<div class="header-toggle">', unsafe_allow_html=True)
-        show_completed = st.checkbox(
-            "Tamamlanan",
-            value=False,
-            key="f_show_completed",
-            help="Tamamlanan kayıtları da listede göster.",
-        )
+        _toggle_cls = "header-toggle header-toggle-active" if bool(
+            st.session_state.get("f_show_completed")
+        ) else "header-toggle"
+        st.markdown(f'<div class="{_toggle_cls}">', unsafe_allow_html=True)
+        _lbl = "✓ tamamlanan" if st.session_state.get("f_show_completed") else "✓ tamamlanan"
+        if st.button(_lbl, key="btn_header_toggle_completed", use_container_width=True):
+            st.session_state["f_show_completed"] = not bool(
+                st.session_state.get("f_show_completed")
+            )
+            st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
     with _lo:
         st.markdown('<div class="header-logout">', unsafe_allow_html=True)
-        if st.button("Çıkış", key="btn_logout", use_container_width=True):
+        if st.button("↪ çıkış", key="btn_logout", use_container_width=True):
             st.session_state.logged_in = False
             st.session_state.pop("user", None)
             st.session_state.pop("must_change_password", None)
             st.rerun()
         st.markdown("</div>", unsafe_allow_html=True)
 st.markdown("</div>", unsafe_allow_html=True)
+show_completed = bool(st.session_state.get("f_show_completed", False))
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
     with st.expander("Ürün kayıt formu", expanded=True):
         render_urun_kayit_form(df)

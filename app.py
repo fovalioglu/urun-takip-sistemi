@@ -2147,12 +2147,6 @@ with toolbar_cols[6]:
         )
 st.markdown("</div>", unsafe_allow_html=True)
 
-_cap = f"Genel filtre sonrası: {len(view)} satır · Toplam veri: {len(df)} satır"
-if show_completed and COL_TAMAMLANDI in filtered_df.columns and not filtered_df.empty:
-    _ndone = int(filtered_df[COL_TAMAMLANDI].map(_coerce_bool_loose).sum())
-    _cap += f" · Tamamlanan: {_ndone}"
-st.caption(_cap)
-
 df_display = editor_df.copy()
 if len(df_display) > 100:
     df_display = df_display.iloc[:100]
@@ -2160,13 +2154,6 @@ _is_admin = tablo_oturum_kullanicisi().casefold() == "admin"
 _del_col = "🗑 Sil"
 if _is_admin and COL_URUN in df_display.columns:
     df_display[_del_col] = False
-
-if len(editor_df) > 100:
-    st.caption(
-        f"**Gösterilen:** ilk 100 satır (filtre sonrası toplam {len(editor_df)} satır)"
-    )
-else:
-    st.caption(f"**Gösterilen:** {len(df_display)} satır")
 
 if COL_URUN in df_display.columns:
     st.session_state["_editor_row_urun_keys"] = (

@@ -330,6 +330,7 @@ button[data-testid="stPopoverButton"]:hover{
   align-items:center;
   gap:6px;
   min-height:34px;
+  min-width:122px;
   padding:0 10px;
   border:1px solid var(--border-soft);
   border-radius:999px;
@@ -337,7 +338,12 @@ button[data-testid="stPopoverButton"]:hover{
   color:var(--text-main);
   font-size:0.78rem;
   font-weight:600;
+  line-height:1;
   box-shadow:0 1px 2px rgba(15,23,42,0.04);
+}
+.account-chip-icon{
+  font-size:0.84rem;
+  line-height:1;
 }
 .account-chip-link{
   text-decoration:none !important;
@@ -350,6 +356,13 @@ button[data-testid="stPopoverButton"]:hover{
 .account-chip-active{
   background:#EAF2FF;
   border-color:#BCD3FA;
+}
+.header-action-group{
+  display:flex;
+  justify-content:flex-end;
+  align-items:center;
+  gap:6px;
+  flex-wrap:nowrap;
 }
 .account-chip .dot{
   width:8px;
@@ -2046,31 +2059,25 @@ with hdr_c:
     )
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _acct, _tg, _lo = st.columns([1.6, 0.95, 0.95], gap="small")
     _online_users = get_online_users()
     _is_online = str(st.session_state.get("user", "")).strip() in {
         str(x).strip() for x in _online_users
     }
-    with _acct:
-        _status_txt = "online" if _is_online else "offline"
-        st.markdown(
-            f'<div class="account-chip">👤 {_u} <span aria-hidden="true">•</span> '
-            f'<span class="dot"></span> {_status_txt}</div>',
-            unsafe_allow_html=True,
-        )
-    with _tg:
-        _toggle_cls = "account-chip account-chip-link account-chip-active" if bool(
-            st.session_state.get("f_show_completed")
-        ) else "account-chip account-chip-link"
-        st.markdown(
-            f'<a class="{_toggle_cls}" href="?hdr_action=toggle_completed">✓ tamamlanan</a>',
-            unsafe_allow_html=True,
-        )
-    with _lo:
-        st.markdown(
-            '<a class="account-chip account-chip-link" href="?hdr_action=logout">↩ çıkış</a>',
-            unsafe_allow_html=True,
-        )
+    _status_txt = "online" if _is_online else "offline"
+    _toggle_cls = "account-chip account-chip-link account-chip-active" if bool(
+        st.session_state.get("f_show_completed")
+    ) else "account-chip account-chip-link"
+    st.markdown(
+        f'<div class="header-action-group">'
+        f'<div class="account-chip"><span class="account-chip-icon">👤</span> {_u} '
+        f'<span aria-hidden="true">•</span> <span class="dot"></span> {_status_txt}</div>'
+        f'<a class="{_toggle_cls}" href="?hdr_action=toggle_completed">'
+        f'<span class="account-chip-icon">✓</span> tamamlanan</a>'
+        f'<a class="account-chip account-chip-link" href="?hdr_action=logout">'
+        f'<span class="account-chip-icon">↩</span> çıkış</a>'
+        f"</div>",
+        unsafe_allow_html=True,
+    )
 st.markdown("</div>", unsafe_allow_html=True)
 show_completed = bool(st.session_state.get("f_show_completed", False))
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):

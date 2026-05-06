@@ -157,6 +157,32 @@ background:white;
 border-radius:8px;
 }
 
+/* Global selectbox contrast fix (dark input uyumlu) */
+[data-testid="stSelectbox"] [data-baseweb="select"] > div{
+color:#ffffff !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] span{
+color:#ffffff !important;
+opacity:1 !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] input::placeholder,
+[data-testid="stSelectbox"] [data-baseweb="select"] [placeholder]{
+color:#d1d5db !important;
+opacity:1 !important;
+}
+[data-testid="stSelectbox"] [data-baseweb="select"] svg{
+fill:#ffffff !important;
+color:#ffffff !important;
+opacity:1 !important;
+}
+/* Dropdown menudeki seçenek yazıları */
+[role="listbox"] [role="option"],
+ul[role="listbox"] li,
+div[role="option"]{
+color:#ffffff !important;
+opacity:1 !important;
+}
+
 /* tablo / düzenleyici — tam genişlik */
 [data-testid="stDataFrame"],
 [data-testid="stDataEditor"]{

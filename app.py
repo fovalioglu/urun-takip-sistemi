@@ -1917,11 +1917,20 @@ with action_col:
             st.rerun()
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
-    st.markdown(
-        f'<div style="text-align:right;font-size:0.75rem;color:#6b5f59;font-weight:500;'
-        f'margin:0 0 0.35rem 0;">son kayıt: {_hm}</div>',
-        unsafe_allow_html=True,
-    )
+    _meta_l, _meta_r = st.columns([1.5, 1], gap="small")
+    with _meta_l:
+        st.markdown(
+            f'<div style="text-align:right;font-size:0.72rem;color:#6b5f59;font-weight:500;'
+            f'margin:0;">son kayıt: {_hm}</div>',
+            unsafe_allow_html=True,
+        )
+    with _meta_r:
+        show_completed = st.checkbox(
+            "Tamamlanan",
+            value=False,
+            key="f_show_completed",
+            help="Tamamlanan kayıtları da listede göster.",
+        )
 if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
     with st.expander("Ürün kayıt formu", expanded=True):
         render_urun_kayit_form(df)
@@ -1932,16 +1941,16 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-filter_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.15, 1.9], gap="small")
-with filter_cols[0]:
+toolbar_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.2, 0.9, 1.0], gap="small")
+with toolbar_cols[0]:
     atolye_filter = st.selectbox("Atölye", ["Tümü"] + atolye_opts, key="f_atolye")
-with filter_cols[1]:
+with toolbar_cols[1]:
     urun_filter = st.selectbox("Ürün Kodu", ["Tümü"] + urun_opts, key="f_urun")
-with filter_cols[2]:
+with toolbar_cols[2]:
     termin_filter = st.selectbox("Termin Durumu", FILTER_TERMIN_OPTS, key="f_termin")
-with filter_cols[3]:
+with toolbar_cols[3]:
     fason_filter = st.selectbox("Fason Durum", FILTER_FASON_OPTS, key="f_fason")
-with filter_cols[4]:
+with toolbar_cols[4]:
     search_q = st.text_input(
         "Genel Arama",
         key="f_global_search",
@@ -1951,15 +1960,13 @@ with filter_cols[4]:
             "(büyük/küçük harf duyarsız, kısmi eşleşme)."
         ),
     )
-
-action_toolbar = st.columns([1.35, 1.0, 1.0, 1.2, 2.45], gap="small")
-with action_toolbar[0]:
-    show_completed = st.checkbox(
-        "Tamamlananları Göster",
-        value=False,
-        key="f_show_completed",
-        help="Kapalıyken yalnızca henüz tamamlanmamış kayıtlar listelenir.",
-    )
+with toolbar_cols[5]:
+    if hasattr(st, "popover"):
+        with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
+            render_urun_kayit_form(df)
+    else:
+        if st.button("➕ Yeni Ürün", use_container_width=True, key="btn_open_form"):
+            st.session_state["_urun_form_expanded"] = True
 
 filtered_df = df.copy()
 if atolye_filter != "Tümü":
@@ -1994,18 +2001,10 @@ editor_full = prepare_for_data_editor(view)
 editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
 excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
-
-with action_toolbar[1]:
-    if hasattr(st, "popover"):
-        with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
-            render_urun_kayit_form(df)
-    else:
-        if st.button("➕ Yeni Ürün", use_container_width=True, key="btn_open_form"):
-            st.session_state["_urun_form_expanded"] = True
-with action_toolbar[2]:
+with toolbar_cols[6]:
     _xlsx = to_excel_bytes(excel_export_df)
     if _xlsx is None:
-        st.caption("openpyxl yok")
+        st.caption("Excel devre dışı")
     else:
         st.download_button(
             label="📥 Excel İndir",
@@ -2015,32 +2014,12 @@ with action_toolbar[2]:
             key="dl_tablo_excel",
             use_container_width=True,
         )
-with action_toolbar[3]:
-    if hasattr(st, "popover"):
-        with st.popover("Sipariş İçeri Aktar", use_container_width=True, width="stretch"):
-            render_trendyol_import_ui(df)
-    else:
-        with st.expander("Sipariş İçeri Aktar", expanded=False):
-            render_trendyol_import_ui(df)
 
-geciken, yaklasan = count_geciken_yaklasan(filtered_df)
-m1, m2, m3 = st.columns([1, 1, 2.0], gap="small")
-with m1:
-    st.metric("Geciken", geciken)
-with m2:
-    st.metric("Yaklaşan", yaklasan)
-with m3:
-    _cap = (
-        f"**Genel filtre sonrası:** {len(view)} satır · **Toplam veri:** {len(df)} satır"
-    )
-    if (
-        show_completed
-        and COL_TAMAMLANDI in filtered_df.columns
-        and not filtered_df.empty
-    ):
-        _ndone = int(filtered_df[COL_TAMAMLANDI].map(_coerce_bool_loose).sum())
-        _cap += f" · **Tamamlanan (bu liste):** {_ndone}"
-    st.caption(_cap)
+_cap = f"Genel filtre sonrası: {len(view)} satır · Toplam veri: {len(df)} satır"
+if show_completed and COL_TAMAMLANDI in filtered_df.columns and not filtered_df.empty:
+    _ndone = int(filtered_df[COL_TAMAMLANDI].map(_coerce_bool_loose).sum())
+    _cap += f" · Tamamlanan: {_ndone}"
+st.caption(_cap)
 
 df_display = editor_df.copy()
 if len(df_display) > 100:

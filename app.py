@@ -279,38 +279,54 @@ button[data-testid="stPopoverButton"]:hover{
 
 [data-testid="stDataFrame"],
 [data-testid="stDataEditor"]{
-  background:var(--bg-card) !important;
-  border:1px solid var(--border-soft) !important;
-  border-radius:16px !important;
-  box-shadow:var(--shadow-card) !important;
-  padding:10px !important;
+  background:#FFFFFF !important;
+  border:1px solid #E4EAF3 !important;
+  border-radius:12px !important;
+  box-shadow:0 1px 3px rgba(15,23,42,0.05) !important;
+  padding:8px !important;
 }
 [data-testid="stDataFrame"] thead tr th,
 [data-testid="stDataEditor"] [role="columnheader"]{
-  background:var(--bg-table-header) !important;
-  color:var(--text-main) !important;
-  border-bottom:1px solid var(--border-soft) !important;
-  font-weight:700 !important;
+  background:#F4F7FB !important;
+  color:#374151 !important;
+  border-bottom:1px solid #E3E9F2 !important;
+  font-weight:600 !important;
 }
 [data-testid="stDataFrame"] tbody tr:nth-child(odd),
 [data-testid="stDataEditor"] [role="row"]:nth-child(odd){
-  background:var(--bg-table-row) !important;
+  background:#FFFFFF !important;
 }
 [data-testid="stDataFrame"] tbody tr:nth-child(even),
 [data-testid="stDataEditor"] [role="row"]:nth-child(even){
-  background:var(--bg-table-row-alt) !important;
+  background:#FAFCFF !important;
 }
 [data-testid="stDataFrame"] tbody tr:hover,
 [data-testid="stDataEditor"] [role="row"]:hover{
-  background:var(--bg-table-hover) !important;
+  background:#F2F7FF !important;
 }
 [data-testid="stDataFrame"] tbody tr td,
 [data-testid="stDataEditor"] [role="gridcell"]{
-  color:var(--text-main) !important;
+  color:#374151 !important;
   min-height:42px !important;
-  padding-top:10px !important;
-  padding-bottom:10px !important;
-  border-bottom:1px solid #EEF3FA !important;
+  padding-top:9px !important;
+  padding-bottom:9px !important;
+  border-bottom:1px solid #EDF2F8 !important;
+}
+/* Spreadsheet benzeri dikey grid çizgileri */
+[data-testid="stDataFrame"] tbody tr td + td,
+[data-testid="stDataEditor"] [role="row"] [role="gridcell"] + [role="gridcell"]{
+  border-left:1px solid #F0F4FA !important;
+}
+[data-testid="stDataFrame"] thead tr th + th,
+[data-testid="stDataEditor"] [role="columnheader"] + [role="columnheader"]{
+  border-left:1px solid #E7EDF6 !important;
+}
+/* Açık tema checkbox */
+[data-testid="stDataEditor"] input[type="checkbox"]{
+  accent-color:#4F8CFF;
+}
+[data-testid="stDataEditor"] [role="gridcell"] input[type="checkbox"]{
+  filter:saturate(0.92);
 }
 
 [data-testid="column"]{

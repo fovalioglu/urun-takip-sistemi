@@ -865,14 +865,48 @@ def _scalar_for_supabase(app_col: str, val: object) -> object | None:
     return s if s else None
 
 
+@st.cache_data(ttl=120, show_spinner=False)
+def get_urunler_table_columns() -> set[str]:
+    """Supabase `urunler` tablosunun kolonlarını okur (mümkünse canlı şema)."""
+    fallback = set(SB_TO_APP.keys())
+    try:
+        resp = supabase.table(SB_TABLE_URUNLER).select("*").limit(1).execute()
+        rows = resp.data or []
+        if rows and isinstance(rows[0], dict):
+            cols = {str(k).strip() for k in rows[0].keys() if str(k).strip()}
+            if cols:
+                return cols
+    except Exception:
+        pass
+    return fallback
+
+
+def _format_supabase_error(err: Exception) -> str:
+    base = str(err).strip() or err.__class__.__name__
+    parts: list[str] = []
+    for attr in ("message", "details", "hint", "code"):
+        val = getattr(err, attr, None)
+        if val is None:
+            continue
+        s = str(val).strip()
+        if s:
+            parts.append(f"{attr}: {s}")
+    if parts:
+        return f"{base} | {' | '.join(parts)}"
+    return base
+
+
 def row_to_supabase_payload(row: pd.Series) -> dict[str, object]:
     payload: dict[str, object] = {}
+    table_cols = get_urunler_table_columns()
     for app_c, sb_c in APP_TO_SB.items():
         if app_c == COL_SB_ID:
             continue
         if app_c == COL_CREATED:
             continue
         if app_c not in row.index:
+            continue
+        if sb_c not in table_cols:
             continue
         payload[sb_c] = _scalar_for_supabase(app_c, row[app_c])
     return payload
@@ -910,11 +944,14 @@ def sync_supabase_urunler(before: pd.DataFrame, after: pd.DataFrame) -> None:
     for _, row in a.iterrows():
         rid = row.get(COL_SB_ID)
         raw = row_to_supabase_payload(row)
+        clean = _payload_skip_none(raw)
         if rid is None or pd.isna(rid) or str(rid).strip() == "":
-            supabase.table(SB_TABLE_URUNLER).insert(_payload_skip_none(raw)).execute()
+            if clean:
+                supabase.table(SB_TABLE_URUNLER).insert(clean).execute()
         else:
             uid = int(pd.to_numeric(rid, errors="coerce"))
-            supabase.table(SB_TABLE_URUNLER).update(raw).eq("id", uid).execute()
+            if clean:
+                supabase.table(SB_TABLE_URUNLER).update(clean).eq("id", uid).execute()
 
 
 def _str_norm(val: object) -> str:
@@ -1777,14 +1814,17 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
                 out_df = pd.concat([base, new_df], ignore_index=True)
                 out_df = normalize_loaded_df(out_df)
                 out_df = apply_d_ab_t(out_df)
-                sync_supabase_urunler(full_before, out_df)
-                save_veriler_csv_snapshot(out_df)
-                load_data.clear()
-                mark_data_file_saved()
-                st.session_state["_rename_from"] = None
-                st.session_state["_urun_prev_value"] = code
-                st.toast("Kayıt kaydedildi.", icon="✅")
-                st.rerun()
+                try:
+                    sync_supabase_urunler(full_before, out_df)
+                    save_veriler_csv_snapshot(out_df)
+                    load_data.clear()
+                    mark_data_file_saved()
+                    st.session_state["_rename_from"] = None
+                    st.session_state["_urun_prev_value"] = code
+                    st.toast("Kayıt kaydedildi.", icon="✅")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Supabase kayıt hatası: {_format_supabase_error(e)}")
 
 
 def _inject_layout_css() -> None:

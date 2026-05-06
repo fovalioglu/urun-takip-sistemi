@@ -25,293 +25,191 @@ st.markdown(
     """
 <style>
 :root{
---ui-text-strong:#111827;
---ui-text-muted:#374151;
+  --bg-main:#F6EDE7;
+  --bg-card:#FFF8F3;
+  --bg-table-header:#D8B7A6;
+  --bg-table-row:#F9F3EF;
+  --bg-table-row-alt:#FFF8F3;
+  --bg-table-hover:#EACFC2;
+  --text-main:#2F2926;
+  --text-secondary:#4A403B;
+  --accent:#5C4033;
+  --accent-hover:#7A5645;
+  --border-soft:#E6CEC1;
+  --shadow-soft:0 8px 24px rgba(92,64,51,0.10);
+  --shadow-card:0 4px 14px rgba(92,64,51,0.08);
 }
 
-/* ANA ARKA PLAN */
 [data-testid="stAppViewContainer"]{
-background: linear-gradient(
-135deg,
-#f4f6fb 0%,
-#eef2f9 35%,
-#e9eef7 60%,
-#f7f9fc 100%
-);
-color:#1f2937;
+  background:linear-gradient(135deg, #F6EDE7 0%, #F8EFE9 52%, #F4E6DE 100%);
+  color:var(--text-main);
 }
 
-/* Bilgi metinleri / label'lar: yüksek kontrast, soluk görünüm kapalı */
-[data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] *,
-.stMarkdown p,
-.stMarkdown span,
+body, p, span, small, label,
 [data-testid="stMarkdownContainer"],
 [data-testid="stMarkdownContainer"] *,
-[data-testid="stMetricLabel"],
-[data-testid="stMetricLabel"] *,
-[data-testid="stMetricValue"],
-[data-testid="stMetricValue"] *,
-[data-testid="stWidgetLabel"],
-[data-testid="stWidgetLabel"] *,
-[data-testid="stCheckbox"] label,
-[data-testid="stCheckbox"] label *,
-[data-baseweb="checkbox"] label,
-[data-baseweb="checkbox"] label *,
-[data-testid="stTextInput"] label,
-[data-testid="stTextArea"] label,
-[data-testid="stSelectbox"] label,
-[data-testid="stNumberInput"] label,
-[data-testid="stDateInput"] label,
-[data-testid="stMultiSelect"] label,
-[data-testid="InputInstructions"],
-[data-testid="InputInstructions"] *,
-[data-testid="stHelpText"],
-[data-testid="stHelpText"] *,
-small,
-p small,
-label{
-color:var(--ui-text-strong) !important;
-opacity:1 !important;
-font-weight:500 !important;
-text-shadow:none !important;
-}
-
-/* Secondary text tonu (hala okunaklı) */
-[data-testid="stCaptionContainer"] em,
-[data-testid="stHelpText"] em,
-[data-testid="InputInstructions"] em{
-color:var(--ui-text-muted) !important;
-opacity:1 !important;
-}
-
-/* Küçük bilgi yazıları responsive'de kaybolmasın */
 [data-testid="stCaptionContainer"],
-[data-testid="stCaptionContainer"] p,
-[data-testid="stCaptionContainer"] span,
-.stMarkdown p,
-.stMarkdown span,
-[data-testid="stMarkdownContainer"] p,
-[data-testid="stMarkdownContainer"] span,
-small{
-white-space:normal !important;
-overflow-wrap:anywhere !important;
-word-break:break-word !important;
+[data-testid="stCaptionContainer"] *,
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] *{
+  color:var(--text-main) !important;
+  opacity:1 !important;
+  font-weight:500 !important;
 }
 
-/* Disabled solukluğu kaldır (özellikle checkbox/select etiketleri) */
-[data-baseweb="checkbox"] *,
-[data-baseweb="select"] *,
-[aria-disabled="true"]{
-opacity:1 !important;
-color:var(--ui-text-strong) !important;
+[class*="secondary"], [class*="muted"], em,
+[data-testid="InputInstructions"], [data-testid="stHelpText"]{
+  color:var(--text-secondary) !important;
+  opacity:1 !important;
 }
 
-/* ANA İÇERİK GENİŞLİĞİ — tablo için maksimum yatay alan */
 .block-container{
-max-width: 100% !important;
-padding-left:12px !important;
-padding-right:12px !important;
-padding-top:25px;
+  max-width:100% !important;
+  padding:20px 14px 16px !important;
 }
 
-/* LOGIN KART (Streamlit form) */
-section.main [data-testid="stForm"]{
-background:#ffffff;
-padding:40px;
-border-radius:18px;
-width:420px;
-max-width:100%;
-margin-left:auto;
-margin-right:auto;
-box-shadow:0 10px 30px rgba(15,23,42,0.08);
+.block-container > div:first-child{
+  background:rgba(255, 248, 243, 0.62);
+  border:1px solid rgba(230, 206, 193, 0.8);
+  border-radius:18px;
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  padding:8px 12px;
 }
 
-/* LOGO */
-.login-logo{
-display:block;
-margin:auto;
-width:160px;
-margin-bottom:20px;
+section.main [data-testid="stForm"],
+[data-testid="stMetricContainer"],
+[data-testid="stExpander"],
+[data-testid="stAlertContainer"]{
+  background:var(--bg-card) !important;
+  border:1px solid var(--border-soft) !important;
+  border-radius:16px !important;
+  box-shadow:var(--shadow-card) !important;
 }
 
-/* INPUT LABEL */
-label{
-color:#1f2937 !important;
-font-weight:500;
+[data-testid="stMetricContainer"]{
+  padding:0.55rem 0.65rem !important;
+}
+[data-testid="stMetricLabel"]{
+  color:var(--text-secondary) !important;
+  font-weight:600 !important;
+}
+[data-testid="stMetricValue"], [data-testid="stMetricValue"] *{
+  color:var(--text-main) !important;
+  font-weight:700 !important;
 }
 
-input::placeholder{
-color:#6b7280;
+input, textarea,
+div[data-baseweb="input"] > div,
+div[data-baseweb="textarea"] > div,
+div[data-baseweb="select"] > div{
+  background:#FFFFFF !important;
+  color:var(--text-main) !important;
+  -webkit-text-fill-color:var(--text-main) !important;
+  border:1px solid var(--border-soft) !important;
+  border-radius:12px !important;
+  box-shadow:0 1px 0 rgba(92,64,51,0.03), 0 6px 16px rgba(92,64,51,0.05) !important;
+}
+input::placeholder, textarea::placeholder,
+div[data-baseweb="select"] input::placeholder{
+  color:#8A7770 !important;
+  -webkit-text-fill-color:#8A7770 !important;
+  opacity:1 !important;
+}
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] div{
+  color:var(--text-main) !important;
+  -webkit-text-fill-color:var(--text-main) !important;
+}
+div[data-baseweb="select"] svg{
+  color:var(--text-secondary) !important;
+  fill:var(--text-secondary) !important;
+}
+[role="listbox"], [role="option"]{
+  background:var(--bg-card) !important;
+  color:var(--text-main) !important;
 }
 
-/* kartlar */
-.stButton>button{
-background:#111827;
-color:white;
+[data-testid="stSelectbox"] > div:focus-within,
+[data-testid="stTextInput"] > div:focus-within{
+  transform:translateY(-1px);
+  box-shadow:0 0 0 2px rgba(122,86,69,0.20), 0 8px 18px rgba(92,64,51,0.10) !important;
 }
 
-/* Global dark/primary button text contrast fix */
 .stButton button,
 button[kind="primary"],
 div[data-testid="stDownloadButton"] button,
 div[data-testid="baseButton-primary"]{
-color:#ffffff !important;
--webkit-text-fill-color:#ffffff !important;
-opacity:1 !important;
-font-weight:600 !important;
+  background:linear-gradient(180deg, #6B4A3B 0%, var(--accent) 100%) !important;
+  color:#FFFFFF !important;
+  -webkit-text-fill-color:#FFFFFF !important;
+  border:1px solid #50372D !important;
+  border-radius:12px !important;
+  box-shadow:var(--shadow-soft) !important;
+  font-weight:600 !important;
+  letter-spacing:0.1px;
 }
-
-/* Buton içi ikonlar da beyaz */
-.stButton button svg,
-button[kind="primary"] svg,
-div[data-testid="stDownloadButton"] button svg,
-div[data-testid="baseButton-primary"] svg{
-color:#ffffff !important;
-fill:#ffffff !important;
-stroke:#ffffff !important;
-opacity:1 !important;
-}
-
-/* Hover'da text kaybolmasın */
 .stButton button:hover,
 button[kind="primary"]:hover,
 div[data-testid="stDownloadButton"] button:hover,
 div[data-testid="baseButton-primary"]:hover{
-color:#ffffff !important;
--webkit-text-fill-color:#ffffff !important;
-opacity:1 !important;
+  background:linear-gradient(180deg, #896251 0%, var(--accent-hover) 100%) !important;
+  color:#FFFFFF !important;
+}
+.stButton button svg, div[data-testid="stDownloadButton"] button svg{
+  color:#FFFFFF !important;
+  fill:#FFFFFF !important;
+  stroke:#FFFFFF !important;
 }
 
-/* filtre alanları */
-[data-baseweb="select"]{
-background:white;
-border-radius:8px;
+[data-testid="stCheckbox"] label p{
+  color:var(--text-main) !important;
+  font-weight:600 !important;
 }
 
-/* Global selectbox contrast fix (dark input uyumlu) */
-div[data-baseweb="select"] span,
-div[data-baseweb="select"] input,
-div[data-baseweb="select"] div,
-div[data-baseweb="select"] svg{
-color:#ffffff !important;
--webkit-text-fill-color:#ffffff !important;
-opacity:1 !important;
-}
-div[data-baseweb="select"] svg{
-fill:#ffffff !important;
-}
-/* Placeholder açık gri kalsın */
-div[data-baseweb="select"] input::placeholder{
-color:#d1d5db !important;
--webkit-text-fill-color:#d1d5db !important;
-opacity:1 !important;
-}
-/* Selected value ve dropdown option metinleri beyaz */
-div[data-baseweb="select"] [role="combobox"],
-div[data-baseweb="select"] [role="combobox"] *{
-color:#ffffff !important;
--webkit-text-fill-color:#ffffff !important;
-opacity:1 !important;
-}
-[role="listbox"] [role="option"],
-ul[role="listbox"] li,
-div[role="option"],
-div[role="option"] *{
-color:#ffffff !important;
--webkit-text-fill-color:#ffffff !important;
-opacity:1 !important;
-}
-
-/* tablo / düzenleyici — tam genişlik */
 [data-testid="stDataFrame"],
 [data-testid="stDataEditor"]{
-background:white;
-border-radius:12px;
-padding:10px;
-width:100% !important;
-max-width:100% !important;
+  background:var(--bg-card) !important;
+  border:1px solid var(--border-soft) !important;
+  border-radius:16px !important;
+  box-shadow:var(--shadow-card) !important;
+  padding:10px !important;
+}
+[data-testid="stDataFrame"] thead tr th,
+[data-testid="stDataEditor"] [role="columnheader"]{
+  background:var(--bg-table-header) !important;
+  color:#3A2F2A !important;
+  border-bottom:1px solid #C99F8A !important;
+  font-weight:700 !important;
+}
+[data-testid="stDataFrame"] tbody tr:nth-child(odd),
+[data-testid="stDataEditor"] [role="row"]:nth-child(odd){
+  background:var(--bg-table-row) !important;
+}
+[data-testid="stDataFrame"] tbody tr:nth-child(even),
+[data-testid="stDataEditor"] [role="row"]:nth-child(even){
+  background:var(--bg-table-row-alt) !important;
+}
+[data-testid="stDataFrame"] tbody tr:hover,
+[data-testid="stDataEditor"] [role="row"]:hover{
+  background:var(--bg-table-hover) !important;
+}
+[data-testid="stDataFrame"] tbody tr td,
+[data-testid="stDataEditor"] [role="gridcell"]{
+  color:var(--text-main) !important;
+  min-height:42px !important;
+  padding-top:10px !important;
+  padding-bottom:10px !important;
+  border-bottom:1px solid #EEDAD1 !important;
 }
 
-.stDataFrame,
-[data-testid="stDataEditor"] > div{
-width:100% !important;
-max-width:100% !important;
-}
-
-/* üst filtre satırı da genişlesin */
 [data-testid="column"]{
-padding-left:8px;
-padding-right:8px;
+  padding-left:8px;
+  padding-right:8px;
 }
 
-/* scroll alanını optimize et */
-section.main > div{
-max-width:100% !important;
-}
-
-/* gereksiz marginleri temizle */
-.css-18e3th9{
-padding-left:12px !important;
-padding-right:12px !important;
-}
-
-/* başlık alt yazı */
-.css-10trblm{
-color:var(--ui-text-muted);
-font-weight:500;
-}
-
-/* input alanları */
-input{
-background:white !important;
-color:#111827 !important;
-border:1px solid #d1d5db !important;
-}
-
-/* genel font rengi */
-body{
-color:var(--ui-text-strong);
-}
-
-/* Streamlit default secondary text tonlarını güçlendir */
-p, small, .stText, .stCaption{
-color:var(--ui-text-strong) !important;
-font-weight:500 !important;
-}
-
-/* Metric alanı: etiket koyu, değer tam siyah */
-[data-testid="stMetricLabel"]{
-color:#374151 !important;
-opacity:1 !important;
-font-weight:600 !important;
-}
-[data-testid="stMetricValue"],
-[data-testid="stMetricValue"] *{
-color:#111827 !important;
-opacity:1 !important;
-font-weight:700 !important;
-}
-
-/* Checkbox label'ları özellikle görünür kalsın */
-[data-testid="stCheckbox"] label p,
-[data-baseweb="checkbox"] label p{
-color:#111827 !important;
-opacity:1 !important;
-font-weight:600 !important;
-}
-
-/* Streamlit muted/secondary metin override */
-[class*="secondary"],
-[class*="muted"],
-[data-testid="stCaptionContainer"]{
-color:#374151 !important;
-opacity:1 !important;
-}
-
-::-webkit-scrollbar{
-height:8px;
-}
+::-webkit-scrollbar{height:9px;}
 
 </style>
 """,

@@ -1757,7 +1757,6 @@ def render_urun_kayit_form(df: pd.DataFrame) -> None:
             base = load_data().copy()
             canon_at = register_atolye(str(form_vals.get("atolye", "")), base)
             form_vals["atolye"] = canon_at
-            st.session_state["form_i_atolye"] = canon_at
             code = str(form_vals["urun_kodu"]).strip()
             dup_mask = base[COL_URUN].astype(str) == code
             if dup_mask.sum() > 1:

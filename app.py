@@ -1416,6 +1416,27 @@ def persist_table_edits(edited_df: object, *, toast_message: str | None) -> bool
         return False
 
 
+def delete_urun_by_code(urun_kodu: str) -> tuple[bool, str]:
+    code = str(urun_kodu).strip()
+    if not code:
+        return False, "Geçersiz ürün kodu."
+    full_before = load_data().copy()
+    if COL_URUN not in full_before.columns:
+        return False, "Veride ürün kodu sütunu bulunamadı."
+    mask = full_before[COL_URUN].astype(str).str.strip() == code
+    if not bool(mask.any()):
+        return False, f"'{code}' kaydı bulunamadı."
+    out_df = full_before.loc[~mask].copy().reset_index(drop=True)
+    try:
+        sync_supabase_urunler(full_before, out_df)
+        save_veriler_csv_snapshot(out_df)
+        load_data.clear()
+        mark_data_file_saved()
+        return True, f"'{code}' kaydı silindi."
+    except Exception as e:
+        return False, f"Silme hatası: {_format_supabase_error(e)}"
+
+
 def apply_d_ab_t(df: pd.DataFrame) -> pd.DataFrame:
     """Terminleri temizler, D-A=T hesaplar, aşırı geçmiş değerleri boşaltır, sıralar."""
     df = df.copy()
@@ -2167,6 +2188,48 @@ _de_kwargs: dict = {
 if _colcfg:
     _de_kwargs["column_config"] = _colcfg
 _edited_raw = st.data_editor(df_display, **_de_kwargs)
+
+_del_ok = st.session_state.pop("_delete_ok_msg", None)
+if _del_ok:
+    st.success(_del_ok)
+_del_err = st.session_state.pop("_delete_err_msg", None)
+if _del_err:
+    st.error(_del_err)
+
+_is_admin = tablo_oturum_kullanicisi().casefold() == "admin"
+if _is_admin and COL_URUN in df_display.columns and not df_display.empty:
+    st.caption("Satır silme (admin): her satırın sonundaki butonla silebilirsiniz.")
+    for i, r in df_display.iterrows():
+        _code = str(r.get(COL_URUN, "")).strip()
+        if not _code:
+            continue
+        _name = str(r.get(COL_URUN_ADI, "")).strip()
+        _l, _r = st.columns([6, 1], gap="small")
+        with _l:
+            if _name:
+                st.markdown(f"`{_code}` · {_name}")
+            else:
+                st.markdown(f"`{_code}`")
+        with _r:
+            if st.button("🗑 Sil", key=f"btn_del_{i}_{_code}"):
+                st.session_state["_delete_confirm_code"] = _code
+    _pending_code = str(st.session_state.get("_delete_confirm_code", "")).strip()
+    if _pending_code:
+        st.warning(f"Bu kayıt silinsin mi? (`{_pending_code}`)")
+        _c1, _c2 = st.columns([1, 1], gap="small")
+        with _c1:
+            if st.button("Evet, sil", type="primary", key="btn_del_confirm"):
+                _ok, _msg = delete_urun_by_code(_pending_code)
+                st.session_state.pop("_delete_confirm_code", None)
+                if _ok:
+                    st.session_state["_delete_ok_msg"] = _msg
+                else:
+                    st.session_state["_delete_err_msg"] = _msg
+                st.rerun()
+        with _c2:
+            if st.button("Vazgeç", key="btn_del_cancel"):
+                st.session_state.pop("_delete_confirm_code", None)
+                st.rerun()
 
 if show_completed and COL_TAMAMLANDI in editor_df.columns:
     _comp_prev = editor_df.loc[editor_df[COL_TAMAMLANDI].map(_coerce_bool_loose)]

@@ -149,6 +149,11 @@ div[data-testid="baseButton-primary"]{
   box-shadow:var(--shadow-soft) !important;
   font-weight:600 !important;
   letter-spacing:0.1px;
+  min-height:42px !important;
+  height:42px !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:center !important;
 }
 .stButton button:hover,
 button[kind="primary"]:hover,
@@ -166,6 +171,18 @@ div[data-testid="baseButton-primary"]:hover{
 [data-testid="stCheckbox"] label p{
   color:var(--text-main) !important;
   font-weight:600 !important;
+  white-space:nowrap !important;
+  line-height:1.1 !important;
+  margin:0 !important;
+}
+[data-testid="stCheckbox"] label{
+  min-height:42px !important;
+  display:flex !important;
+  align-items:center !important;
+  padding:0 10px !important;
+  border:1px solid var(--border-soft) !important;
+  border-radius:12px !important;
+  background:var(--bg-card) !important;
 }
 
 [data-testid="stDataFrame"],
@@ -1901,7 +1918,7 @@ with action_col:
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
     st.markdown(
-        f'<div style="text-align:right;font-size:0.75rem;color:#111827;font-weight:500;'
+        f'<div style="text-align:right;font-size:0.75rem;color:#6b5f59;font-weight:500;'
         f'margin:0 0 0.35rem 0;">son kayıt: {_hm}</div>',
         unsafe_allow_html=True,
     )
@@ -1915,18 +1932,16 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-toolbar_cols = st.columns(
-    [1.0, 1.0, 1.0, 1.0, 1.15, 0.9, 0.95, 0.95, 1.1], gap="small"
-)
-with toolbar_cols[0]:
+filter_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.15, 1.9], gap="small")
+with filter_cols[0]:
     atolye_filter = st.selectbox("Atölye", ["Tümü"] + atolye_opts, key="f_atolye")
-with toolbar_cols[1]:
+with filter_cols[1]:
     urun_filter = st.selectbox("Ürün Kodu", ["Tümü"] + urun_opts, key="f_urun")
-with toolbar_cols[2]:
+with filter_cols[2]:
     termin_filter = st.selectbox("Termin Durumu", FILTER_TERMIN_OPTS, key="f_termin")
-with toolbar_cols[3]:
+with filter_cols[3]:
     fason_filter = st.selectbox("Fason Durum", FILTER_FASON_OPTS, key="f_fason")
-with toolbar_cols[4]:
+with filter_cols[4]:
     search_q = st.text_input(
         "Genel Arama",
         key="f_global_search",
@@ -1936,7 +1951,9 @@ with toolbar_cols[4]:
             "(büyük/küçük harf duyarsız, kısmi eşleşme)."
         ),
     )
-with toolbar_cols[5]:
+
+action_toolbar = st.columns([1.35, 1.0, 1.0, 1.2, 2.45], gap="small")
+with action_toolbar[0]:
     show_completed = st.checkbox(
         "Tamamlananları Göster",
         value=False,
@@ -1978,14 +1995,14 @@ editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
 excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 
-with toolbar_cols[6]:
+with action_toolbar[1]:
     if hasattr(st, "popover"):
         with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
             render_urun_kayit_form(df)
     else:
         if st.button("➕ Yeni Ürün", use_container_width=True, key="btn_open_form"):
             st.session_state["_urun_form_expanded"] = True
-with toolbar_cols[7]:
+with action_toolbar[2]:
     _xlsx = to_excel_bytes(excel_export_df)
     if _xlsx is None:
         st.caption("openpyxl yok")
@@ -1998,7 +2015,7 @@ with toolbar_cols[7]:
             key="dl_tablo_excel",
             use_container_width=True,
         )
-with toolbar_cols[8]:
+with action_toolbar[3]:
     if hasattr(st, "popover"):
         with st.popover("Sipariş İçeri Aktar", use_container_width=True, width="stretch"):
             render_trendyol_import_ui(df)

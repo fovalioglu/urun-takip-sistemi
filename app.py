@@ -244,6 +244,27 @@ button[data-testid="stPopoverButton"]:hover{
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
 }
+.sticky-toolbar [data-testid="stHorizontalBlock"]{
+  align-items:center !important;
+}
+.sticky-toolbar [data-testid="column"] > div{
+  display:flex !important;
+  flex-direction:column !important;
+  justify-content:flex-end !important;
+  height:100% !important;
+}
+.sticky-toolbar [data-testid="stButton"],
+.sticky-toolbar [data-testid="stDownloadButton"],
+.sticky-toolbar [data-testid="stPopover"]{
+  margin-top:0 !important;
+  padding-top:0 !important;
+}
+.toolbar-label-spacer{
+  height:1.35rem;
+  line-height:1.35rem;
+  visibility:hidden;
+  user-select:none;
+}
 @media (max-width: 900px){
   .sticky-toolbar{
     top:4px;
@@ -2001,6 +2022,7 @@ with toolbar_cols[4]:
         ),
     )
 with toolbar_cols[5]:
+    st.markdown('<div class="toolbar-label-spacer">Aksiyon</div>', unsafe_allow_html=True)
     if hasattr(st, "popover"):
         with st.popover("➕ Yeni Ürün", use_container_width=True, width="stretch"):
             render_urun_kayit_form(df)
@@ -2042,6 +2064,7 @@ editor_df = normalize_dataframe_for_streamlit_editor(editor_full.copy())
 view_for_excel = view.copy()
 excel_export_df = tablo_gorunumu_excel_df(view_for_excel, editor_df)
 with toolbar_cols[6]:
+    st.markdown('<div class="toolbar-label-spacer">Aksiyon</div>', unsafe_allow_html=True)
     _xlsx = to_excel_bytes(excel_export_df)
     if _xlsx is None:
         st.caption("Excel devre dışı")

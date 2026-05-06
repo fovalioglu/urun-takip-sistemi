@@ -26,7 +26,7 @@ st.markdown(
 <style>
 :root{
 --ui-text-strong:#111827;
---ui-text-muted:#1f2937;
+--ui-text-muted:#374151;
 }
 
 /* ANA ARKA PLAN */
@@ -46,16 +46,43 @@ color:#1f2937;
 [data-testid="stCaptionContainer"] *,
 .stMarkdown p,
 .stMarkdown span,
+[data-testid="stMarkdownContainer"],
+[data-testid="stMarkdownContainer"] *,
 [data-testid="stMetricLabel"],
+[data-testid="stMetricLabel"] *,
 [data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *,
 [data-testid="stWidgetLabel"],
 [data-testid="stWidgetLabel"] *,
 [data-testid="stCheckbox"] label,
 [data-testid="stCheckbox"] label *,
+[data-baseweb="checkbox"] label,
+[data-baseweb="checkbox"] label *,
+[data-testid="stTextInput"] label,
+[data-testid="stTextArea"] label,
+[data-testid="stSelectbox"] label,
+[data-testid="stNumberInput"] label,
+[data-testid="stDateInput"] label,
+[data-testid="stMultiSelect"] label,
+[data-testid="InputInstructions"],
+[data-testid="InputInstructions"] *,
+[data-testid="stHelpText"],
+[data-testid="stHelpText"] *,
+small,
+p small,
 label{
 color:var(--ui-text-strong) !important;
 opacity:1 !important;
 font-weight:500 !important;
+text-shadow:none !important;
+}
+
+/* Secondary text tonu (hala okunaklı) */
+[data-testid="stCaptionContainer"] em,
+[data-testid="stHelpText"] em,
+[data-testid="InputInstructions"] em{
+color:var(--ui-text-muted) !important;
+opacity:1 !important;
 }
 
 /* Küçük bilgi yazıları responsive'de kaybolmasın */
@@ -63,7 +90,10 @@ font-weight:500 !important;
 [data-testid="stCaptionContainer"] p,
 [data-testid="stCaptionContainer"] span,
 .stMarkdown p,
-.stMarkdown span{
+.stMarkdown span,
+[data-testid="stMarkdownContainer"] p,
+[data-testid="stMarkdownContainer"] span,
+small{
 white-space:normal !important;
 overflow-wrap:anywhere !important;
 word-break:break-word !important;
@@ -74,6 +104,7 @@ word-break:break-word !important;
 [data-baseweb="select"] *,
 [aria-disabled="true"]{
 opacity:1 !important;
+color:var(--ui-text-strong) !important;
 }
 
 /* ANA İÇERİK GENİŞLİĞİ — tablo için maksimum yatay alan */
@@ -183,15 +214,33 @@ color:var(--ui-text-strong) !important;
 font-weight:500 !important;
 }
 
-/* Dark theme uyumu: güçlü ama göz yormayan kontrast */
-@media (prefers-color-scheme: dark){
-  :root{
-    --ui-text-strong:#e5e7eb;
-    --ui-text-muted:#d1d5db;
-  }
-  [data-testid="stAppViewContainer"]{
-    color:var(--ui-text-strong);
-  }
+/* Metric alanı: etiket koyu, değer tam siyah */
+[data-testid="stMetricLabel"]{
+color:#374151 !important;
+opacity:1 !important;
+font-weight:600 !important;
+}
+[data-testid="stMetricValue"],
+[data-testid="stMetricValue"] *{
+color:#111827 !important;
+opacity:1 !important;
+font-weight:700 !important;
+}
+
+/* Checkbox label'ları özellikle görünür kalsın */
+[data-testid="stCheckbox"] label p,
+[data-baseweb="checkbox"] label p{
+color:#111827 !important;
+opacity:1 !important;
+font-weight:600 !important;
+}
+
+/* Streamlit muted/secondary metin override */
+[class*="secondary"],
+[class*="muted"],
+[data-testid="stCaptionContainer"]{
+color:#374151 !important;
+opacity:1 !important;
 }
 
 ::-webkit-scrollbar{

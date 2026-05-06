@@ -329,6 +329,47 @@ button[data-testid="stPopoverButton"]:hover{
   filter:saturate(0.92);
 }
 
+/* st.data_editor (glide-data-grid) gerçek render katmanı */
+[data-testid="stDataEditor"] .glide-data-grid,
+[data-testid="stDataEditor"] .glide-data-grid *{
+  color:#374151 !important;
+}
+[data-testid="stDataEditor"] .glide-data-grid{
+  --gdg-bg-cell:#FFFFFF;
+  --gdg-bg-cell-medium:#FAFCFF;
+  --gdg-bg-header:#F4F7FB;
+  --gdg-bg-header-has-focus:#EEF3FA;
+  --gdg-bg-bubble:#FFFFFF;
+  --gdg-bg-bubble-selected:#EAF2FF;
+  --gdg-bg-search-result:#EEF4FF;
+  --gdg-border-color:#E5EBF4;
+  --gdg-horizontal-border-color:#EDF2F8;
+  --gdg-header-font-style:600 13px;
+  --gdg-base-font-style:500 13px;
+  --gdg-editor-font-size:13px;
+  --gdg-text-dark:#374151;
+  --gdg-text-medium:#6B7280;
+  --gdg-text-light:#9AA4B2;
+  --gdg-accent-color:#4F8CFF;
+  --gdg-accent-fg:#FFFFFF;
+  --gdg-link-color:#3B7AF5;
+  --gdg-cell-horizontal-padding:10px;
+  --gdg-cell-vertical-padding:8px;
+}
+[data-testid="stDataEditor"] .glide-data-grid canvas{
+  background:#FFFFFF !important;
+}
+[data-testid="stDataEditor"] .gdg-header,
+[data-testid="stDataEditor"] .gdg-header-view,
+[data-testid="stDataEditor"] .gdg-header-view *{
+  background:#F4F7FB !important;
+  color:#374151 !important;
+}
+[data-testid="stDataEditor"] .gdg-row:hover,
+[data-testid="stDataEditor"] .gdg-row-hover{
+  background:#F2F7FF !important;
+}
+
 [data-testid="column"]{
   padding-left:8px;
   padding-right:8px;

@@ -904,6 +904,9 @@ def row_to_supabase_payload(row: pd.Series) -> dict[str, object]:
             continue
         if app_c == COL_CREATED:
             continue
+        if sb_c == "stok_kodu":
+            # Hedef tabloda kolon yoksa APIError üretmemesi için payload'a ekleme.
+            continue
         if app_c not in row.index:
             continue
         if sb_c not in table_cols:

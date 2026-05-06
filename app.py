@@ -87,6 +87,44 @@ section.main [data-testid="stForm"],
   box-shadow:var(--shadow-card) !important;
 }
 
+/* Modern compact login card */
+section.main [data-testid="stForm"]{
+  width:100%;
+  max-width:340px;
+  margin-left:auto;
+  margin-right:auto;
+  padding:20px 18px 16px !important;
+  border-radius:14px !important;
+  background:rgba(255,255,255,0.92) !important;
+  border:1px solid #E6EDF7 !important;
+  box-shadow:0 10px 24px rgba(15,23,42,0.08) !important;
+  backdrop-filter:blur(4px);
+  -webkit-backdrop-filter:blur(4px);
+}
+.login-logo{
+  display:block;
+  margin:0 auto 10px auto;
+  width:112px;
+  height:auto;
+}
+section.main [data-testid="stForm"] [data-testid="stTextInput"]{
+  margin-bottom:4px !important;
+}
+section.main [data-testid="stForm"] label{
+  font-size:0.82rem !important;
+  margin-bottom:3px !important;
+}
+section.main [data-testid="stForm"] input{
+  min-height:38px !important;
+  height:38px !important;
+  border-radius:10px !important;
+}
+section.main [data-testid="stForm"] .stButton button{
+  min-height:38px !important;
+  height:38px !important;
+  border-radius:10px !important;
+}
+
 [data-testid="stMetricContainer"]{
   padding:0.55rem 0.65rem !important;
 }
@@ -1941,7 +1979,7 @@ def _inject_layout_css() -> None:
 
 
 def render_login_screen() -> None:
-    col1, col2, col3 = st.columns([1, 2, 1])
+    col1, col2, col3 = st.columns([1.7, 1, 1.7])
     with col2:
         with st.form("login_form"):
             st.markdown(

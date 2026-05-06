@@ -93,87 +93,85 @@ section.main [data-testid="stForm"]{
   max-width:340px;
   margin-left:auto;
   margin-right:auto;
-  padding:20px 18px 16px !important;
-  border-radius:14px !important;
-  background:rgba(255,255,255,0.92) !important;
-  border:1px solid #E6EDF7 !important;
-  box-shadow:0 10px 24px rgba(15,23,42,0.08) !important;
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
+  padding:18px 16px 14px !important;
+  border-radius:8px !important;
+  background:#FFFFFF !important;
+  border:1px solid #E8EEF6 !important;
+  box-shadow:0 2px 8px rgba(15,23,42,0.06) !important;
 }
 .login-logo{
   display:block;
-  margin:0 auto 10px auto;
-  width:112px;
+  margin:2px auto 10px auto;
+  width:100px;
   height:auto;
 }
 section.main [data-testid="stForm"] [data-testid="stTextInput"]{
-  margin-bottom:8px !important;
+  margin-bottom:7px !important;
 }
 section.main [data-testid="stForm"] label{
   font-size:0.78rem !important;
   color:#6B7280 !important;
   font-weight:500 !important;
-  margin-bottom:4px !important;
+  margin-bottom:3px !important;
   letter-spacing:0.01em;
 }
 section.main [data-testid="stForm"] div[data-baseweb="input"]{
   min-height:40px !important;
   height:40px !important;
-  border-radius:11px !important;
-  border:1px solid #DDE6F3 !important;
-  box-shadow:inset 0 1px 1px rgba(15,23,42,0.02), 0 1px 2px rgba(15,23,42,0.03) !important;
+  border-radius:6px !important;
+  border:1px solid #D7E0ED !important;
+  box-shadow:none !important;
   background:#FFFFFF !important;
 }
 section.main [data-testid="stForm"] input{
   min-height:40px !important;
   height:40px !important;
-  border-radius:11px !important;
-  font-size:0.9rem !important;
+  border-radius:6px !important;
+  font-size:0.89rem !important;
   color:#1F2937 !important;
   -webkit-text-fill-color:#1F2937 !important;
-  padding-left:11px !important;
-  padding-right:11px !important;
+  padding-left:10px !important;
+  padding-right:10px !important;
 }
 section.main [data-testid="stForm"] input::placeholder{
-  color:#9AA4B2 !important;
-  -webkit-text-fill-color:#9AA4B2 !important;
+  color:#A0AAB8 !important;
+  -webkit-text-fill-color:#A0AAB8 !important;
 }
 section.main [data-testid="stForm"] [data-baseweb="input"]:focus-within{
   border-color:#4F8CFF !important;
-  box-shadow:0 0 0 3px rgba(79,140,255,0.16), inset 0 1px 1px rgba(15,23,42,0.02) !important;
+  box-shadow:0 0 0 1px #4F8CFF !important;
 }
 /* Password eye icon: inputla bütünleşik ve dengeli */
 section.main [data-testid="stForm"] [data-baseweb="input"] button{
   border:none !important;
   background:transparent !important;
   box-shadow:none !important;
-  min-height:28px !important;
-  width:28px !important;
+  min-height:24px !important;
+  width:24px !important;
   padding:0 !important;
-  margin-right:4px !important;
+  margin-right:6px !important;
 }
 section.main [data-testid="stForm"] [data-baseweb="input"] button svg{
-  color:#94A3B8 !important;
-  fill:#94A3B8 !important;
-  width:16px !important;
-  height:16px !important;
+  color:#9AA4B2 !important;
+  fill:#9AA4B2 !important;
+  width:14px !important;
+  height:14px !important;
 }
 section.main [data-testid="stForm"] .stButton button{
   min-height:40px !important;
   height:40px !important;
-  border-radius:11px !important;
-  background:linear-gradient(180deg, #5D97FF 0%, #4F8CFF 100%) !important;
+  border-radius:6px !important;
+  background:#4F8CFF !important;
   border:1px solid #3F7EEB !important;
-  box-shadow:0 4px 10px rgba(79,140,255,0.20) !important;
+  box-shadow:none !important;
   font-size:0.88rem !important;
   font-weight:600 !important;
-  transition:all .18s ease !important;
+  transition:background-color .15s ease !important;
 }
 section.main [data-testid="stForm"] .stButton button:hover{
-  background:linear-gradient(180deg, #4F8CFF 0%, #3B7AF5 100%) !important;
-  box-shadow:0 6px 14px rgba(59,122,245,0.24) !important;
-  transform:translateY(-1px);
+  background:#3B7AF5 !important;
+  box-shadow:none !important;
+  transform:none;
 }
 
 [data-testid="stMetricContainer"]{

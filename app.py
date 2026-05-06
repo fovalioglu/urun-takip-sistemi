@@ -311,6 +311,34 @@ button[data-testid="stPopoverButton"]:hover{
   font-weight:500;
   text-align:right;
 }
+.account-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:34px;
+  padding:0 10px;
+  border:1px solid var(--border-soft);
+  border-radius:999px;
+  background:#F7FAFF;
+  color:var(--text-main);
+  font-size:0.78rem;
+  font-weight:600;
+}
+.account-chip .dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:#22C55E;
+  box-shadow:0 0 0 2px rgba(34,197,94,0.15);
+}
+.toolbar-update-badge{
+  text-align:right;
+  margin:0 2px 4px 0;
+  font-size:0.74rem;
+  color:var(--text-secondary);
+  opacity:0.72;
+  font-weight:500;
+}
 .header-chip [data-testid="stPopover"] button{
   min-height:34px !important;
   height:34px !important;
@@ -1995,16 +2023,18 @@ with hdr_c:
     st.markdown('<div class="app-title">Termin ve atölye takibi</div>', unsafe_allow_html=True)
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
-    _ur, _on, _lo, _tg = st.columns([1.05, 0.95, 0.7, 1.0], gap="small")
-    with _ur:
+    _acct, _lo, _tg = st.columns([1.7, 0.7, 1.0], gap="small")
+    _online_users = get_online_users()
+    _is_online = str(st.session_state.get("user", "")).strip() in {
+        str(x).strip() for x in _online_users
+    }
+    with _acct:
+        _status_txt = "online" if _is_online else "offline"
         st.markdown(
-            f'<div class="header-meta">{_u}</div>',
+            f'<div class="account-chip">👤 {_u} <span aria-hidden="true">•</span> '
+            f'<span class="dot"></span> {_status_txt}</div>',
             unsafe_allow_html=True,
         )
-    with _on:
-        st.markdown('<div class="header-chip">', unsafe_allow_html=True)
-        render_online_users()
-        st.markdown("</div>", unsafe_allow_html=True)
     with _lo:
         st.markdown('<div class="header-logout">', unsafe_allow_html=True)
         if st.button("Çıkış", key="btn_logout", use_container_width=True):
@@ -2015,12 +2045,6 @@ with hdr_r:
         st.markdown("</div>", unsafe_allow_html=True)
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
-    _meta_l, _meta_r = st.columns([1.4, 1], gap="small")
-    with _meta_l:
-        st.markdown(
-            f'<div class="header-meta">son kayıt: {_hm}</div>',
-            unsafe_allow_html=True,
-        )
     with _tg:
         st.markdown('<div class="header-toggle">', unsafe_allow_html=True)
         show_completed = st.checkbox(
@@ -2041,6 +2065,10 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
+st.markdown(
+    f'<div class="toolbar-update-badge">Son güncelleme • {_hm}</div>',
+    unsafe_allow_html=True,
+)
 st.markdown('<div class="sticky-toolbar">', unsafe_allow_html=True)
 toolbar_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.2, 0.9, 1.0], gap="small")
 with toolbar_cols[0]:

@@ -24,6 +24,10 @@ st.set_page_config(
 st.markdown(
     """
 <style>
+:root{
+--ui-text-strong:#111827;
+--ui-text-muted:#1f2937;
+}
 
 /* ANA ARKA PLAN */
 [data-testid="stAppViewContainer"]{
@@ -35,6 +39,41 @@ background: linear-gradient(
 #f7f9fc 100%
 );
 color:#1f2937;
+}
+
+/* Bilgi metinleri / label'lar: yüksek kontrast, soluk görünüm kapalı */
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] *,
+.stMarkdown p,
+.stMarkdown span,
+[data-testid="stMetricLabel"],
+[data-testid="stMetricValue"],
+[data-testid="stWidgetLabel"],
+[data-testid="stWidgetLabel"] *,
+[data-testid="stCheckbox"] label,
+[data-testid="stCheckbox"] label *,
+label{
+color:var(--ui-text-strong) !important;
+opacity:1 !important;
+font-weight:500 !important;
+}
+
+/* Küçük bilgi yazıları responsive'de kaybolmasın */
+[data-testid="stCaptionContainer"],
+[data-testid="stCaptionContainer"] p,
+[data-testid="stCaptionContainer"] span,
+.stMarkdown p,
+.stMarkdown span{
+white-space:normal !important;
+overflow-wrap:anywhere !important;
+word-break:break-word !important;
+}
+
+/* Disabled solukluğu kaldır (özellikle checkbox/select etiketleri) */
+[data-baseweb="checkbox"] *,
+[data-baseweb="select"] *,
+[aria-disabled="true"]{
+opacity:1 !important;
 }
 
 /* ANA İÇERİK GENİŞLİĞİ — tablo için maksimum yatay alan */
@@ -122,7 +161,8 @@ padding-right:12px !important;
 
 /* başlık alt yazı */
 .css-10trblm{
-color:#374151;
+color:var(--ui-text-muted);
+font-weight:500;
 }
 
 /* input alanları */
@@ -134,7 +174,24 @@ border:1px solid #d1d5db !important;
 
 /* genel font rengi */
 body{
-color:#111827;
+color:var(--ui-text-strong);
+}
+
+/* Streamlit default secondary text tonlarını güçlendir */
+p, small, .stText, .stCaption{
+color:var(--ui-text-strong) !important;
+font-weight:500 !important;
+}
+
+/* Dark theme uyumu: güçlü ama göz yormayan kontrast */
+@media (prefers-color-scheme: dark){
+  :root{
+    --ui-text-strong:#e5e7eb;
+    --ui-text-muted:#d1d5db;
+  }
+  [data-testid="stAppViewContainer"]{
+    color:var(--ui-text-strong);
+  }
 }
 
 ::-webkit-scrollbar{
@@ -1663,7 +1720,7 @@ def render_force_password_change() -> None:
     c1, c2, c3 = st.columns([1, 2, 1])
     with c2:
         st.markdown(
-            "<p style='text-align:center;color:#64748b;margin-bottom:1rem;'>"
+            "<p style='text-align:center;color:#111827;font-weight:500;margin-bottom:1rem;'>"
             "Güvenlik için yeni bir şifre belirlemeniz gerekiyor.</p>",
             unsafe_allow_html=True,
         )
@@ -1753,7 +1810,7 @@ with action_col:
     _ur, _on, _lo = st.columns([1.35, 1.05, 0.72], gap="small")
     with _ur:
         st.markdown(
-            f'<div style="text-align:right;font-size:0.9rem;color:#0f172a;'
+            f'<div style="text-align:right;font-size:0.9rem;color:#111827;font-weight:500;'
             f'margin:0 0 0.35rem 0;line-height:2rem;">{_u}</div>',
             unsafe_allow_html=True,
         )
@@ -1768,7 +1825,7 @@ with action_col:
     _ls = st.session_state.get("_last_save_at")
     _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
     st.markdown(
-        f'<div style="text-align:right;font-size:0.75rem;color:#64748b;'
+        f'<div style="text-align:right;font-size:0.75rem;color:#111827;font-weight:500;'
         f'margin:0 0 0.35rem 0;">son kayıt: {_hm}</div>',
         unsafe_allow_html=True,
     )

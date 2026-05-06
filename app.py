@@ -158,28 +158,36 @@ border-radius:8px;
 }
 
 /* Global selectbox contrast fix (dark input uyumlu) */
-[data-testid="stSelectbox"] [data-baseweb="select"] > div{
+div[data-baseweb="select"] span,
+div[data-baseweb="select"] input,
+div[data-baseweb="select"] div,
+div[data-baseweb="select"] svg{
 color:#ffffff !important;
-}
-[data-testid="stSelectbox"] [data-baseweb="select"] span{
-color:#ffffff !important;
+-webkit-text-fill-color:#ffffff !important;
 opacity:1 !important;
 }
-[data-testid="stSelectbox"] [data-baseweb="select"] input::placeholder,
-[data-testid="stSelectbox"] [data-baseweb="select"] [placeholder]{
-color:#d1d5db !important;
-opacity:1 !important;
-}
-[data-testid="stSelectbox"] [data-baseweb="select"] svg{
+div[data-baseweb="select"] svg{
 fill:#ffffff !important;
-color:#ffffff !important;
+}
+/* Placeholder açık gri kalsın */
+div[data-baseweb="select"] input::placeholder{
+color:#d1d5db !important;
+-webkit-text-fill-color:#d1d5db !important;
 opacity:1 !important;
 }
-/* Dropdown menudeki seçenek yazıları */
+/* Selected value ve dropdown option metinleri beyaz */
+div[data-baseweb="select"] [role="combobox"],
+div[data-baseweb="select"] [role="combobox"] *{
+color:#ffffff !important;
+-webkit-text-fill-color:#ffffff !important;
+opacity:1 !important;
+}
 [role="listbox"] [role="option"],
 ul[role="listbox"] li,
-div[role="option"]{
+div[role="option"],
+div[role="option"] *{
 color:#ffffff !important;
+-webkit-text-fill-color:#ffffff !important;
 opacity:1 !important;
 }
 

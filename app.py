@@ -234,12 +234,12 @@ button[data-testid="stPopoverButton"]:hover{
 /* Sadece filtre + aksiyon toolbar sticky */
 .sticky-toolbar{
   position:sticky;
-  top:4px;
+  top:2px;
   z-index:40;
   background:rgba(248, 250, 252, 0.88);
   border:1px solid var(--border-soft);
   border-radius:12px;
-  padding:6px 10px 4px;
+  padding:5px 10px 3px;
   box-shadow:0 8px 20px rgba(15, 23, 42, 0.08);
   backdrop-filter:blur(6px);
   -webkit-backdrop-filter:blur(6px);
@@ -288,15 +288,29 @@ button[data-testid="stPopoverButton"]:hover{
 
 /* Kompakt premium header */
 .app-header{
-  margin-bottom:2px;
+  margin-bottom:1px;
 }
 .app-title{
   margin:0;
-  font-size:1.02rem;
+  font-size:1.01rem;
   font-weight:600;
   color:var(--text-main);
-  line-height:1.25;
+  line-height:1.15;
   text-align:center;
+}
+.app-title-row{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  margin:0;
+}
+.app-title-meta{
+  font-size:0.74rem;
+  color:var(--text-secondary);
+  opacity:0.76;
+  font-weight:500;
+  white-space:nowrap;
 }
 .brand-sub{
   margin-top:0;
@@ -330,14 +344,6 @@ button[data-testid="stPopoverButton"]:hover{
   border-radius:999px;
   background:#22C55E;
   box-shadow:0 0 0 2px rgba(34,197,94,0.15);
-}
-.toolbar-update-badge{
-  text-align:right;
-  margin:0 2px 2px 0;
-  font-size:0.74rem;
-  color:var(--text-secondary);
-  opacity:0.72;
-  font-weight:500;
 }
 .header-chip [data-testid="stPopover"] button{
   min-height:34px !important;
@@ -2006,6 +2012,8 @@ if COL_ATOLYE not in df.columns or COL_URUN not in df.columns:
     st.stop()
 
 ensure_last_save_bootstrap()
+_ls = st.session_state.get("_last_save_at")
+_hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
 
 st.markdown('<div class="app-header">', unsafe_allow_html=True)
 hdr_l, hdr_c, hdr_r = st.columns([1.2, 1.6, 1.7], gap="small")
@@ -2020,7 +2028,11 @@ with hdr_l:
         unsafe_allow_html=True,
     )
 with hdr_c:
-    st.markdown('<div class="app-title">Termin ve atölye takibi</div>', unsafe_allow_html=True)
+    st.markdown(
+        f'<div class="app-title app-title-row">Termin ve atölye takibi'
+        f'<span class="app-title-meta">• Son güncelleme { _hm }</span></div>',
+        unsafe_allow_html=True,
+    )
 with hdr_r:
     _u = html.escape(str(st.session_state.get("user", "")))
     _acct, _tg, _lo = st.columns([1.7, 1.0, 0.7], gap="small")
@@ -2035,8 +2047,6 @@ with hdr_r:
             f'<span class="dot"></span> {_status_txt}</div>',
             unsafe_allow_html=True,
         )
-    _ls = st.session_state.get("_last_save_at")
-    _hm = _ls.strftime("%H:%M") if isinstance(_ls, datetime.datetime) else "—"
     with _tg:
         st.markdown('<div class="header-toggle">', unsafe_allow_html=True)
         show_completed = st.checkbox(
@@ -2065,10 +2075,6 @@ if not hasattr(st, "popover") and st.session_state.get("_urun_form_expanded"):
 atolye_opts = merge_atolye_sources(df)
 urun_opts = sorted(df[COL_URUN].dropna().astype(str).unique().tolist())
 
-st.markdown(
-    f'<div class="toolbar-update-badge">Son güncelleme • {_hm}</div>',
-    unsafe_allow_html=True,
-)
 st.markdown('<div class="sticky-toolbar">', unsafe_allow_html=True)
 toolbar_cols = st.columns([1.0, 1.0, 1.0, 1.0, 1.2, 0.9, 1.0], gap="small")
 with toolbar_cols[0]:

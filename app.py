@@ -1478,7 +1478,11 @@ def apply_table_save(
         return full_before, log_entries
     dup = edit_df[COL_URUN].duplicated()
     if dup.any():
-        raise ValueError("Tabloda aynı ürün kodundan birden fazla satır var.")
+        # Duplicate ürün kodu fatal değil; sadece uyarı bırak, kayıt yapma.
+        st.session_state["_dup_urun_warn"] = (
+            "Bazı ürün kodları birden fazla satır içeriyor."
+        )
+        return full_before, log_entries
     full = full_before.copy().reset_index(drop=True)
     ix_by_code = {
         str(r[COL_URUN]).strip(): i
@@ -2381,15 +2385,30 @@ for col in ui_df.columns:
 
 ui_df = ui_df.fillna("")
 
-# test dataframe
-test_df = ui_df.head(20)
+# row id (duplicate ürün kodu olsa da AgGrid her satırı ayırt etsin)
+ui_df = ui_df.reset_index(drop=True)
+ui_df["_row_id"] = ui_df.index.astype(str)
 
-st.write("AGGRID TEST")
+# duplicate ürün kodu uyarısı (fatal değil)
+if COL_URUN in ui_df.columns:
+    _dup_mask = ui_df[COL_URUN].astype(str).str.strip().duplicated(keep=False)
+    _dup_mask &= ui_df[COL_URUN].astype(str).str.strip() != ""
+    if bool(_dup_mask.any()):
+        st.warning("Bazı ürün kodları birden fazla satır içeriyor.")
 
-AgGrid(test_df)
+_dup_warn = st.session_state.pop("_dup_urun_warn", None)
+if _dup_warn:
+    st.warning(_dup_warn)
 
-_grid_show = test_df
-_edited_raw = test_df.copy()
+response = AgGrid(
+    ui_df,
+    theme="balham",
+    height=700,
+    fit_columns_on_grid_load=True,
+)
+
+_grid_show = ui_df
+_edited_raw = ui_df.copy()
 
 _del_ok = st.session_state.pop("_delete_ok_msg", None)
 if _del_ok:
@@ -2450,19 +2469,22 @@ if show_completed and COL_TAMAMLANDI in editor_df.columns:
                 height=min(400, 48 + 32 * min(len(_show_g), 14)),
             )
             st.caption("Düzenleme üstteki ana tablodan yapılır.")
-_persist_cols = [c for c in _grid_show.columns if c != _del_col]
-_edited_aligned = _edited_raw.reindex(columns=_persist_cols)
-edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
-_base = _grid_show.reindex(columns=_persist_cols).reset_index(drop=True)
-_edited_norm = edited_df.reset_index(drop=True)
-try:
-    _tablo_degisti = not _edited_norm.equals(_base)
-except (TypeError, ValueError):
-    _tablo_degisti = True
-if _tablo_degisti:
-    if persist_table_edits(edited_df, toast_message="Tablo güncellendi."):
-        st.rerun()
+# Edit persist akışı geçici olarak kapalı: AgGrid çıplak render modunda olduğu
+# için tabloya gelen "değişiklik" gerçek bir kullanıcı düzenlemesi değil; her
+# rerunda st.rerun() döngüsü tetikleniyordu.
+# _persist_cols = [c for c in _grid_show.columns if c != _del_col]
+# _edited_aligned = _edited_raw.reindex(columns=_persist_cols)
+# edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
+# _base = _grid_show.reindex(columns=_persist_cols).reset_index(drop=True)
+# _edited_norm = edited_df.reset_index(drop=True)
+# try:
+#     _tablo_degisti = not _edited_norm.equals(_base)
+# except (TypeError, ValueError):
+#     _tablo_degisti = True
+# if _tablo_degisti:
+#     if persist_table_edits(edited_df, toast_message="Tablo güncellendi."):
+#         st.rerun()
 
 _err = st.session_state.get("_autosave_err")
 if _err:
-    st.error(_err)
+    st.warning(_err)

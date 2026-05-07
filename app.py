@@ -576,7 +576,7 @@ import time
 from io import BytesIO, StringIO
 from pathlib import Path
 import pandas as pd
-from st_aggrid import AgGrid, DataReturnMode, GridOptionsBuilder, GridUpdateMode
+from st_aggrid import AgGrid
 
 from supabase import create_client
 
@@ -2363,44 +2363,33 @@ if COL_URUN in df_display.columns:
 else:
     st.session_state.pop("_editor_row_urun_keys", None)
 
-gb = GridOptionsBuilder.from_dataframe(df_display)
-gb.configure_default_column(editable=True, sortable=True, resizable=True)
-gb.configure_grid_options(
-    domLayout="normal",
-    rowHeight=38,
-    headerHeight=38,
-    suppressDragLeaveHidesColumns=True,
-)
-if COL_TAMAMLANDI in df_display.columns:
-    gb.configure_column(
-        COL_TAMAMLANDI,
-        editable=True,
-        cellRenderer="agCheckboxCellRenderer",
-        cellEditor="agCheckboxCellEditor",
-    )
-if _is_admin and _del_col in df_display.columns:
-    gb.configure_column(
-        _del_col,
-        editable=True,
-        cellRenderer="agCheckboxCellRenderer",
-        cellEditor="agCheckboxCellEditor",
-        headerTooltip="Satırı silmek için işaretleyin.",
-    )
-if COL_DAB in df_display.columns:
-    gb.configure_column(COL_DAB, type=["numericColumn"])
+# ===== SAFE AGGRID DATAFRAME =====
 
-grid_response = AgGrid(
-    df_display,
-    gridOptions=gb.build(),
-    height=700,
-    fit_columns_on_grid_load=True,
-    allow_unsafe_jscode=True,
-    theme="balham",
-    update_mode=GridUpdateMode.VALUE_CHANGED | GridUpdateMode.MODEL_CHANGED,
-    data_return_mode=DataReturnMode.AS_INPUT,
-    key="main_table_aggrid",
-)
-_edited_raw = pd.DataFrame(grid_response.get("data", df_display))
+ui_df = filtered_df.copy()
+
+# duplicate column fix
+ui_df = ui_df.loc[:, ~ui_df.columns.duplicated()]
+
+# serialize safe
+for col in ui_df.columns:
+
+    try:
+        ui_df[col] = ui_df[col].astype(str)
+
+    except Exception:
+        pass
+
+ui_df = ui_df.fillna("")
+
+# test dataframe
+test_df = ui_df.head(20)
+
+st.write("AGGRID TEST")
+
+AgGrid(test_df)
+
+_grid_show = test_df
+_edited_raw = test_df.copy()
 
 _del_ok = st.session_state.pop("_delete_ok_msg", None)
 if _del_ok:
@@ -2461,10 +2450,10 @@ if show_completed and COL_TAMAMLANDI in editor_df.columns:
                 height=min(400, 48 + 32 * min(len(_show_g), 14)),
             )
             st.caption("Düzenleme üstteki ana tablodan yapılır.")
-_persist_cols = [c for c in df_display.columns if c != _del_col]
+_persist_cols = [c for c in _grid_show.columns if c != _del_col]
 _edited_aligned = _edited_raw.reindex(columns=_persist_cols)
 edited_df = normalize_dataframe_for_streamlit_editor(_edited_aligned)
-_base = df_display.reindex(columns=_persist_cols).reset_index(drop=True)
+_base = _grid_show.reindex(columns=_persist_cols).reset_index(drop=True)
 _edited_norm = edited_df.reset_index(drop=True)
 try:
     _tablo_degisti = not _edited_norm.equals(_base)

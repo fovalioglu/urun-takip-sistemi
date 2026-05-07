@@ -576,7 +576,7 @@ import time
 from io import BytesIO, StringIO
 from pathlib import Path
 import pandas as pd
-from st_aggrid import AgGrid
+from st_aggrid import AgGrid, GridOptionsBuilder
 
 from supabase import create_client
 
@@ -2374,37 +2374,126 @@ ui_df = filtered_df.copy()
 # duplicate column fix
 ui_df = ui_df.loc[:, ~ui_df.columns.duplicated()]
 
-# serialize safe
+# Sadece serialize sorunu çıkaran kolonları dönüştür; diğer dtypeları koru.
 for col in ui_df.columns:
-
     try:
+        if "datetime" in str(ui_df[col].dtype):
+            ui_df[col] = ui_df[col].dt.strftime("%d.%m.%Y").fillna("")
+        elif ui_df[col].dtype == "object":
+            ui_df[col] = ui_df[col].where(ui_df[col].notna(), "")
+    except Exception:
         ui_df[col] = ui_df[col].astype(str)
 
-    except Exception:
-        pass
+# Internal/debug kolonları görünümden çıkar (audit gibi).
+_HIDDEN_COLS = {COL_AUDIT}
+ui_df = ui_df.drop(columns=[c for c in _HIDDEN_COLS if c in ui_df.columns])
 
-ui_df = ui_df.fillna("")
-
-# row id (duplicate ürün kodu olsa da AgGrid her satırı ayırt etsin)
+# Internal row id (kullanıcıya gösterilmeyecek).
 ui_df = ui_df.reset_index(drop=True)
 ui_df["_row_id"] = ui_df.index.astype(str)
 
-# duplicate ürün kodu uyarısı (fatal değil)
+# Duplicate ürün kodu — küçük inline bilgi, dikkat dağıtmasın.
+_dup_count = 0
 if COL_URUN in ui_df.columns:
-    _dup_mask = ui_df[COL_URUN].astype(str).str.strip().duplicated(keep=False)
-    _dup_mask &= ui_df[COL_URUN].astype(str).str.strip() != ""
-    if bool(_dup_mask.any()):
-        st.warning("Bazı ürün kodları birden fazla satır içeriyor.")
+    _codes = ui_df[COL_URUN].astype(str).str.strip()
+    _dup_count = int(((_codes != "") & _codes.duplicated(keep=False)).sum())
 
-_dup_warn = st.session_state.pop("_dup_urun_warn", None)
-if _dup_warn:
-    st.warning(_dup_warn)
+_dup_warn_text = st.session_state.pop("_dup_urun_warn", None)
+if _dup_count > 0 or _dup_warn_text:
+    _msg = (
+        f"{_dup_count} adet tekrar eden ürün kodu bulundu"
+        if _dup_count > 0
+        else _dup_warn_text
+    )
+    st.caption(f"ℹ️ {_msg}")
+
+# ----- AgGrid premium görünüm -----
+_AGGRID_CSS = {
+    ".ag-theme-balham": {
+        "--ag-font-family": (
+            "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, "
+            "'Helvetica Neue', Arial, sans-serif"
+        ),
+        "--ag-font-size": "13px",
+        "--ag-foreground-color": "#1f2937",
+        "--ag-background-color": "#ffffff",
+        "--ag-header-foreground-color": "#374151",
+        "--ag-header-background-color": "#f3f4f6",
+        "--ag-odd-row-background-color": "#fafafa",
+        "--ag-row-hover-color": "#eff6ff",
+        "--ag-selected-row-background-color": "#dbeafe",
+        "--ag-border-color": "#e5e7eb",
+        "--ag-row-border-color": "#eef0f3",
+        "--ag-header-column-separator-color": "#e5e7eb",
+        "--ag-cell-horizontal-padding": "12px",
+        "--ag-grid-size": "6px",
+        "--ag-list-item-height": "32px",
+    },
+    ".ag-header-cell-label": {
+        "font-weight": "600",
+        "letter-spacing": "0.2px",
+    },
+    ".ag-header": {
+        "border-bottom": "1px solid #e5e7eb",
+    },
+    ".ag-row": {
+        "border-bottom": "1px solid #eef0f3",
+    },
+    ".ag-cell": {
+        "display": "flex",
+        "align-items": "center",
+    },
+}
+
+_NUMERIC_COLS = {COL_DAB, COL_KESIM}
+_DATE_COLS = {COL_DSM, COL_ATOLYE_TERM, COL_CREATED}
+_BOOL_COLS = {COL_TAMAMLANDI}
+_NARROW_COLS = {COL_DAB, COL_BEDEN, COL_RENK, COL_TAMAMLANDI}
+_WIDE_COLS = {COL_URUN_ADI, COL_PLM}
+
+gb = GridOptionsBuilder.from_dataframe(ui_df)
+gb.configure_default_column(
+    resizable=True,
+    sortable=True,
+    filter=True,
+    minWidth=110,
+    flex=1,
+    wrapHeaderText=True,
+    autoHeaderHeight=True,
+    cellStyle={"line-height": "34px"},
+)
+gb.configure_grid_options(
+    domLayout="normal",
+    rowHeight=36,
+    headerHeight=40,
+    suppressDragLeaveHidesColumns=True,
+    animateRows=True,
+    suppressCellFocus=True,
+)
+gb.configure_column("_row_id", hide=True, suppressColumnsToolPanel=True)
+for _c in ui_df.columns:
+    if _c == "_row_id":
+        continue
+    if _c in _NUMERIC_COLS:
+        gb.configure_column(_c, type=["numericColumn"], minWidth=90, flex=0, width=110)
+    elif _c in _DATE_COLS:
+        gb.configure_column(_c, minWidth=120, flex=0, width=130)
+    elif _c in _BOOL_COLS:
+        gb.configure_column(_c, minWidth=110, flex=0, width=120)
+    elif _c in _NARROW_COLS:
+        gb.configure_column(_c, minWidth=100, flex=0, width=120)
+    elif _c in _WIDE_COLS:
+        gb.configure_column(_c, minWidth=200, flex=2)
+    else:
+        gb.configure_column(_c, minWidth=130)
 
 response = AgGrid(
     ui_df,
+    gridOptions=gb.build(),
     theme="balham",
-    height=700,
+    height=640,
     fit_columns_on_grid_load=True,
+    custom_css=_AGGRID_CSS,
 )
 
 _grid_show = ui_df
